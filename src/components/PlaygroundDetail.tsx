@@ -165,18 +165,15 @@ function getEquipment(p: Playground): string[] {
 }
 
 function ratingToStars(rating: number): number {
-  if (rating >= 80) return 5;
-  if (rating >= 60) return 4;
-  if (rating >= 35) return 3;
-  if (rating >= 15) return 2;
-  return 1;
+  return rating / 20;
 }
 
 function getRatingLabel(rating: number): { label: string; color: string } {
-  if (rating >= 80) return { label: "Отлично", color: "text-emerald-600" };
-  if (rating >= 60) return { label: "Хорошо", color: "text-primary" };
-  if (rating >= 35) return { label: "Средне", color: "text-amber-600" };
-  if (rating >= 15) return { label: "Ниже среднего", color: "text-orange-600" };
+  const stars = rating / 20;
+  if (stars >= 4) return { label: "Отлично", color: "text-emerald-600" };
+  if (stars >= 3) return { label: "Хорошо", color: "text-primary" };
+  if (stars >= 1.75) return { label: "Средне", color: "text-amber-600" };
+  if (stars >= 0.75) return { label: "Ниже среднего", color: "text-orange-600" };
   return { label: "Плохо", color: "text-red-600" };
 }
 
@@ -267,18 +264,25 @@ function MiniMap({ lat, lng, address }: { lat: number; lng: number; address: str
 function StarRating({ rating, size = "md" }: { rating: number; size?: "sm" | "md" | "lg" }) {
   const stars = ratingToStars(rating);
   const iconSize = size === "lg" ? "w-6 h-6" : size === "md" ? "w-5 h-5" : "w-4 h-4";
+  const fullStars = Math.floor(stars);
+  const partialStar = stars - fullStars;
+  const emptyStars = 5 - fullStars - (partialStar > 0 ? 1 : 0);
 
   return (
     <div className="flex items-center gap-0.5">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star
-          key={i}
-          className={`${iconSize} ${
-            i < stars
-              ? "fill-amber-400 text-amber-400"
-              : "fill-muted text-muted-foreground/30"
-          }`}
-        />
+      {Array.from({ length: fullStars }).map((_, i) => (
+        <Star key={`full-${i}`} className={`${iconSize} fill-amber-400 text-amber-400`} />
+      ))}
+      {partialStar > 0 && (
+        <div key="partial" className="relative">
+          <Star className={`${iconSize} fill-muted text-muted-foreground/30`} />
+          <div className="absolute inset-0 overflow-hidden" style={{ width: `${partialStar * 100}%` }}>
+            <Star className={`${iconSize} fill-amber-400 text-amber-400`} />
+          </div>
+        </div>
+      )}
+      {Array.from({ length: emptyStars }).map((_, i) => (
+        <Star key={`empty-${i}`} className={`${iconSize} fill-muted text-muted-foreground/30`} />
       ))}
     </div>
   );
@@ -321,6 +325,7 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
   const photos = useMemo(() => getPhotos(playground), [playground]);
   const equipment = useMemo(() => getEquipment(playground), [playground]);
   const ratingInfo = useMemo(() => getRatingLabel(playground.rating), [playground.rating]);
+  const stars = ratingToStars(playground.rating);
   const conditionInfo = CONDITION_MAP[playground.condition] || CONDITION_MAP.good;
   const typeInfo = TYPE_MAP[playground.type] || TYPE_MAP.kids;
   const extraPhotosCount = Math.max(0, photos.length - 3);
@@ -545,7 +550,7 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
             <div className="flex items-center gap-3 mb-3">
               <StarRating rating={playground.rating} size="md" />
               <span className={`text-sm font-semibold ${ratingInfo.color}`}>
-                {ratingInfo.label} • {playground.rating}/100
+                {ratingInfo.label} • {stars.toFixed(1)} ★
               </span>
             </div>
             {/* Name */}
@@ -725,7 +730,7 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Общий рейтинг</span>
-                  <span className={`text-sm font-bold ${ratingInfo.color}`}>{playground.rating}/100</span>
+                  <span className={`text-sm font-bold ${ratingInfo.color}`}>{stars.toFixed(1)} ★ из 5</span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
                   <motion.div

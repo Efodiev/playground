@@ -18,3 +18,71 @@ Stage Summary:
 - Fixed: allowedDevOrigins updated with correct format
 - Server now runs stably using spawn-server.sh with auto-restart loop
 - All 14 approved + 2 pending playgrounds load correctly
+
+---
+Task ID: 2-b
+Agent: main
+Task: Update PlaygroundDetail component to support 5-star rating display system
+
+Work Log:
+- Updated `ratingToStars` function from integer-based thresholds (rating >= 80 → 5, etc.) to float calculation: `rating / 20`
+- Updated `getRatingLabel` function thresholds from rating-based (80/60/35/15) to star-based (4/3/1.75/0.75)
+- Rewrote `StarRating` component to support partial star fills using overflow-hidden clip approach:
+  - Renders full stars, one partial star (clipped via percentage width), and empty stars
+  - Partial star uses a layered approach: background empty star + absolutely positioned filled star clipped by width
+- Added `stars` computed value in main component: `const stars = ratingToStars(playground.rating)`
+- Updated Primary Info section label from `{playground.rating}/100` to `{stars.toFixed(1)} ★`
+- Updated Status/Condition Card label from `{playground.rating}/100` to `{stars.toFixed(1)} ★ из 5`
+- Kept rating progress bar percentage unchanged (still uses `playground.rating` as 0-100%)
+- Verified compilation succeeds with no errors (dev log: ✓ Compiled in 184ms)
+
+Stage Summary:
+- Rating display now converts 0-100 database scale to 0-5 star scale
+- Partial stars are visually rendered using CSS clip approach
+- All six changes applied successfully with no compilation errors
+
+---
+Task ID: 2
+Agent: main
+Task: Implement 3 features - Move Location, Edit-as-Add form, 5-star rating system
+
+Work Log:
+
+### Feature 1: Move Location section below Upload Photos in ADD form
+- Changed left column (md:col-span-7) from just Photo Upload to Photo Upload + Location
+- Wrapped left column in `flex flex-col gap-6` to stack Photo Upload and Location vertically
+- Moved the entire Location block (MapPin header, address input, district/city selects, MapPicker, auto-detected info) from right column to left column below photos
+- Right column (md:col-span-5) now contains only Basic Info + Rating Preview (no location)
+
+### Feature 2: Implement edit playground as add-form with pre-filled data
+- Removed PlaygroundEditForm import (line 21) and its modal at the bottom of the component
+- Removed editFormOpen state variable
+- Changed `handleEditPlayground` to pre-fill all form state from playground data and switch to "add" tab
+- Added `handleCancelEdit` function that clears editingPlayground, resets form, and goes back to previous tab
+- Replaced `handleSubmit` with `handleFormSubmit` that handles both add (POST) and edit (PATCH) modes
+- In edit mode, `handleFormSubmit` accepts optional `overrideStatus` parameter for pending→approved workflow
+- Updated ADD tab header: edit mode shows "Редактирование площадки" with playground name; add mode shows "Добавить новую площадку"
+- Updated submit button area:
+  - Add mode: "Добавить площадку" button as before
+  - Edit mode (approved): "Сохранить" button that PATCHes
+  - Edit mode (pending): "Сохранить" (keeps pending) + "Опубликовать" (approves and publishes)
+- After successful edit, data is refreshed and user is navigated back to previous tab
+- Form onSubmit changed from `handleSubmit` to `(e) => { e.preventDefault(); handleFormSubmit(); }`
+
+### Feature 3: Implement 5-star rating system
+- RatingBar component: Changed display from `{rating}/100` to `{(rating/20).toFixed(1)} ★`
+- RatingPreview component:
+  - Main rating: Changed from `{rating}` to `{(rating/20).toFixed(1)} ★`
+  - Condition breakdown: Changed from `{condScore}/40` to `{(condScore/20).toFixed(1)}/2.0 ★`
+  - Equipment breakdown: Changed from `{equipScore}/60` to `{(equipScore/20).toFixed(1)}/3.0 ★`
+  - Criteria legend: Updated from point values (40/28/12/0 баллов) to star values (2.0/1.4/0.6/0 ★)
+  - Equipment per item: Updated from "+4 балла (макс. 60)" to "+0.2 ★ (макс. 3.0 ★)"
+- Map component popup: Changed from `${p.rating}/100 ${ratingInfo.label}` to `${(p.rating/20).toFixed(1)} ★ ${ratingInfo.label}`
+- Admin tab pending cards: Changed from `{p.rating}/100` to `{(p.rating/20).toFixed(1)} ★`
+- Admin approved table: Changed from `{p.rating}` to `{(p.rating/20).toFixed(1)} ★`
+- Internal calculateRating function and score constants remain unchanged (still 0-100 scale)
+
+Stage Summary:
+- All 3 features implemented successfully with no compilation errors
+- ESLint passes with no issues
+- Dev server compiles successfully

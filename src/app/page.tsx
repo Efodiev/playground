@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import PlaygroundDetail from "@/components/PlaygroundDetail";
-import PlaygroundEditForm from "@/components/PlaygroundEditForm";
 
 // ==================== TYPES ====================
 type ViewTab = "home" | "registry" | "add" | "admin" | "detail";
@@ -331,7 +330,7 @@ function RatingBar({ rating, size = "md" }: { rating: number; size?: "sm" | "md"
       </div>
       {size !== "sm" && (
         <span className={`text-xs font-semibold ${info.color} shrink-0`}>
-          {rating}/100
+          {(rating/20).toFixed(1)} ★
         </span>
       )}
     </div>
@@ -474,7 +473,7 @@ function MapComponent({
                 ${conditionInfo.label}
               </span>
               <span style="font-size:12px;font-weight:700;color:${ratingInfo.color === 'text-emerald-600' ? '#059669' : ratingInfo.color === 'text-primary' ? '#3d6922' : ratingInfo.color === 'text-amber-600' ? '#d97706' : '#dc2626'};">
-                ${p.rating}/100 ${ratingInfo.label}
+                ${(p.rating/20).toFixed(1)} ★ ${ratingInfo.label}
               </span>
             </div>
           </div>`,
@@ -828,7 +827,7 @@ function RatingPreview({ condition, equipment }: { condition: string; equipment:
       <div className="mb-5">
         <div className="flex justify-between items-center mb-2">
           <span className={`text-lg font-bold ${info.color}`}>{info.label}</span>
-          <span className={`text-2xl font-bold ${info.color}`}>{rating}</span>
+          <span className={`text-2xl font-bold ${info.color}`}>{(rating/20).toFixed(1)} ★</span>
         </div>
         <RatingBar rating={rating} size="lg" />
       </div>
@@ -840,7 +839,7 @@ function RatingPreview({ condition, equipment }: { condition: string; equipment:
             <CheckCircle2 className="w-3.5 h-3.5" />
             Состояние
           </span>
-          <span className="text-sm font-semibold">{condScore}/40</span>
+          <span className="text-sm font-semibold">{(condScore/20).toFixed(1)}/2.0 ★</span>
         </div>
         <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
           <motion.div
@@ -856,7 +855,7 @@ function RatingPreview({ condition, equipment }: { condition: string; equipment:
             <Dumbbell className="w-3.5 h-3.5" />
             Оборудование ({equipment.length} п.)
           </span>
-          <span className="text-sm font-semibold">{equipScore}/60</span>
+          <span className="text-sm font-semibold">{(equipScore/20).toFixed(1)}/3.0 ★</span>
         </div>
         <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
           <motion.div
@@ -872,11 +871,11 @@ function RatingPreview({ condition, equipment }: { condition: string; equipment:
       <div className="mt-5 pt-4 border-t border-border/20">
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Критерии оценки</p>
         <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-          <span>Идеально — 40 баллов</span>
-          <span>Хорошее — 28 баллов</span>
-          <span>Ремонт — 12 баллов</span>
-          <span>Опасно — 0 баллов</span>
-          <span className="col-span-2 mt-1">Каждое оборудование +4 балла (макс. 60)</span>
+          <span>Идеально — 2.0 ★</span>
+          <span>Хорошее — 1.4 ★</span>
+          <span>Ремонт — 0.6 ★</span>
+          <span>Опасно — 0 ★</span>
+          <span className="col-span-2 mt-1">Каждое оборудование +0.2 ★ (макс. 3.0 ★)</span>
         </div>
       </div>
     </div>
@@ -905,7 +904,7 @@ export default function HomePage() {
   const [detailPlayground, setDetailPlayground] = useState<Playground | null>(null);
   const [previousTab, setPreviousTab] = useState<ViewTab>("home");
   const [editingPlayground, setEditingPlayground] = useState<Playground | null>(null);
-  const [editFormOpen, setEditFormOpen] = useState(false);
+
   const { toast } = useToast();
 
   // Form state
@@ -1057,49 +1056,47 @@ export default function HomePage() {
   // Edit playground
   const handleEditPlayground = (p: Playground) => {
     setEditingPlayground(p);
-    setEditFormOpen(true);
-  };
-
-  const handleSaveEdit = async (updatedData: Partial<Playground>) => {
-    if (!editingPlayground) return;
+    // Pre-fill form state from playground data
+    setFormName(p.name);
+    setFormDescription(p.description || "");
+    setFormAddress(p.address);
+    setFormDistrict(p.district);
+    setFormCity(p.city);
+    setFormLat(p.lat);
+    setFormLng(p.lng);
+    setFormType(p.type);
+    setFormCondition(p.condition);
     try {
-      const res = await fetch(`/api/playgrounds/${editingPlayground.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedData),
-      });
-      if (res.ok) {
-        toast({ title: "Сохранено", description: "Данные площадки обновлены" });
-        setEditFormOpen(false);
-        setEditingPlayground(null);
-        // Refresh data
-        fetchApproved();
-        if (isAdmin) {
-          fetchPending();
-          fetchStats();
-        }
-        // If we're viewing this playground's detail, update it
-        if (detailPlayground?.id === editingPlayground.id) {
-          const updated = await res.json();
-          setDetailPlayground(updated);
-        }
-      } else {
-        toast({ title: "Ошибка", description: "Не удалось сохранить изменения", variant: "destructive" });
-      }
-    } catch {
-      toast({ title: "Ошибка", description: "Не удалось сохранить изменения", variant: "destructive" });
-    }
+      setFormEquipment(JSON.parse(p.equipment || "[]"));
+    } catch { setFormEquipment([]); }
+    try {
+      setFormPhotos(JSON.parse(p.photos || "[]"));
+    } catch { setFormPhotos([]); }
+    setFormSubmitterName(p.submitterName || "");
+    setFormSubmitterEmail(p.submitterEmail || "");
+    setSubmitted(false);
+    setPreviousTab(activeTab);
+    setActiveTab("add");
   };
 
-  // Submit form
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Cancel edit handler
+  const handleCancelEdit = () => {
+    setEditingPlayground(null);
+    setFormName(""); setFormDescription(""); setFormAddress("");
+    setFormDistrict("Тираспольский"); setFormCity("Тирасполь");
+    setFormLat(46.84); setFormLng(29.63);
+    setFormType("kids"); setFormCondition("good"); setFormEquipment([]);
+    setFormSubmitterName(""); setFormSubmitterEmail(""); setFormPhotos([]);
+    setActiveTab(previousTab);
+  };
+
+  // Submit form (handles both add and edit modes)
+  const handleFormSubmit = async (overrideStatus?: string) => {
     setSubmitting(true);
+    const isEditMode = editingPlayground !== null;
     try {
-      const res = await fetch("/api/playgrounds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      if (isEditMode) {
+        const body: Record<string, unknown> = {
           name: formName,
           description: formDescription,
           address: formAddress,
@@ -1114,14 +1111,58 @@ export default function HomePage() {
           equipment: formEquipment,
           submitterName: formSubmitterName,
           submitterEmail: formSubmitterEmail,
-        }),
-      });
-      if (res.ok) {
-        setSubmitted(true);
-        toast({ title: "Спасибо!", description: "Ваша заявка отправлена на модерацию" });
+        };
+        if (overrideStatus) {
+          body.status = overrideStatus;
+        }
+        const res = await fetch(`/api/playgrounds/${editingPlayground!.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          toast({ title: "Сохранено", description: "Данные площадки обновлены" });
+          const prevTab = previousTab;
+          setEditingPlayground(null);
+          setFormName(""); setFormDescription(""); setFormAddress("");
+          setFormDistrict("Тираспольский"); setFormCity("Тирасполь");
+          setFormLat(46.84); setFormLng(29.63);
+          setFormType("kids"); setFormCondition("good"); setFormEquipment([]);
+          setFormSubmitterName(""); setFormSubmitterEmail(""); setFormPhotos([]);
+          setActiveTab(prevTab);
+          fetchApproved();
+          if (isAdmin) { fetchPending(); fetchStats(); }
+        } else {
+          toast({ title: "Ошибка", description: "Не удалось сохранить изменения", variant: "destructive" });
+        }
+      } else {
+        const res = await fetch("/api/playgrounds", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formName,
+            description: formDescription,
+            address: formAddress,
+            city: formCity,
+            district: formDistrict,
+            lat: formLat,
+            lng: formLng,
+            type: formType,
+            condition: formCondition,
+            rating: formRating,
+            photos: formPhotos,
+            equipment: formEquipment,
+            submitterName: formSubmitterName,
+            submitterEmail: formSubmitterEmail,
+          }),
+        });
+        if (res.ok) {
+          setSubmitted(true);
+          toast({ title: "Спасибо!", description: "Ваша заявка отправлена на модерацию" });
+        }
       }
     } catch {
-      toast({ title: "Ошибка", description: "Не удалось отправить заявку", variant: "destructive" });
+      toast({ title: "Ошибка", description: isEditMode ? "Не удалось сохранить изменения" : "Не удалось отправить заявку", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -1529,60 +1570,30 @@ export default function HomePage() {
               {!submitted ? (
                 <>
                   <div className="mb-10">
-                    <h2 className="text-3xl font-bold text-foreground mb-2">Добавить новую площадку</h2>
-                    <p className="text-muted-foreground">Помогите сообществу найти лучшие места для игр, заполнив форму ниже.</p>
+                    {editingPlayground !== null ? (
+                      <>
+                        <h2 className="text-3xl font-bold text-foreground mb-2">Редактирование площадки</h2>
+                        <p className="text-primary font-medium">{editingPlayground.name}</p>
+                      </>
+                    ) : (
+                      <>
+                        <h2 className="text-3xl font-bold text-foreground mb-2">Добавить новую площадку</h2>
+                        <p className="text-muted-foreground">Помогите сообществу найти лучшие места для игр, заполнив форму ниже.</p>
+                      </>
+                    )}
                   </div>
 
-                  <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                    {/* Photo Upload */}
-                    <div className="md:col-span-7 bg-white rounded-3xl p-6 border border-border/30 shadow-sm">
-                      <div className="flex items-center gap-2 mb-5">
-                        <Camera className="w-5 h-5 text-primary" />
-                        <h3 className="font-semibold text-foreground">Загрузите фото</h3>
-                        <Badge variant="secondary" className="ml-auto text-xs">{formPhotos.length}/{MAX_PHOTOS}</Badge>
-                      </div>
-                      <PhotoUploader photos={formPhotos} onChange={setFormPhotos} />
-                    </div>
-
-                    {/* Right column: Info + Map + Rating */}
-                    <div className="md:col-span-5 flex flex-col gap-6">
-                      {/* Basic Info */}
-                      <div className="bg-white rounded-3xl p-6 border border-border/30 shadow-sm space-y-4">
-                        <div>
-                          <Label className="text-sm font-medium mb-1.5">Название площадки *</Label>
-                          <Input placeholder="Напр. Парк Горького — Южная" className="rounded-xl" value={formName} onChange={(e) => setFormName(e.target.value)} required />
+                  <form onSubmit={(e) => { e.preventDefault(); handleFormSubmit(); }} className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    {/* Left column: Photo Upload + Location */}
+                    <div className="md:col-span-7 flex flex-col gap-6">
+                      {/* Photo Upload */}
+                      <div className="bg-white rounded-3xl p-6 border border-border/30 shadow-sm">
+                        <div className="flex items-center gap-2 mb-5">
+                          <Camera className="w-5 h-5 text-primary" />
+                          <h3 className="font-semibold text-foreground">Загрузите фото</h3>
+                          <Badge variant="secondary" className="ml-auto text-xs">{formPhotos.length}/{MAX_PHOTOS}</Badge>
                         </div>
-                        <div>
-                          <Label className="text-sm font-medium mb-1.5">Тип площадки</Label>
-                          <div className="flex gap-2">
-                            {[
-                              { value: "kids", label: "Детская", icon: <Baby className="w-3.5 h-3.5" /> },
-                              { value: "sports", label: "Спортивная", icon: <Dumbbell className="w-3.5 h-3.5" /> },
-                              { value: "both", label: "Обе", icon: <TreePine className="w-3.5 h-3.5" /> },
-                            ].map((opt) => (
-                              <button key={opt.value} type="button" onClick={() => setFormType(opt.value)}
-                                className={`flex-1 py-2.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${formType === opt.value ? "bg-primary text-primary-foreground shadow-sm" : "border border-border text-muted-foreground hover:border-primary/50"}`}>
-                                {opt.icon}{opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium mb-1.5">Состояние</Label>
-                          <div className="flex gap-2">
-                            {[
-                              { value: "excellent", label: "Идеально" },
-                              { value: "good", label: "Хорошее" },
-                              { value: "needs_repair", label: "Ремонт" },
-                              { value: "dangerous", label: "Опасно" },
-                            ].map((opt) => (
-                              <button key={opt.value} type="button" onClick={() => setFormCondition(opt.value)}
-                                className={`flex-1 py-2.5 rounded-full text-xs font-medium transition-all ${formCondition === opt.value ? "bg-primary text-primary-foreground shadow-sm" : "border border-border text-muted-foreground hover:border-primary/50"}`}>
-                                {opt.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <PhotoUploader photos={formPhotos} onChange={setFormPhotos} />
                       </div>
 
                       {/* Location */}
@@ -1634,6 +1645,48 @@ export default function HomePage() {
                           />
                         </div>
                       </div>
+                    </div>
+
+                    {/* Right column: Info + Rating */}
+                    <div className="md:col-span-5 flex flex-col gap-6">
+                      {/* Basic Info */}
+                      <div className="bg-white rounded-3xl p-6 border border-border/30 shadow-sm space-y-4">
+                        <div>
+                          <Label className="text-sm font-medium mb-1.5">Название площадки *</Label>
+                          <Input placeholder="Напр. Парк Горького — Южная" className="rounded-xl" value={formName} onChange={(e) => setFormName(e.target.value)} required />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium mb-1.5">Тип площадки</Label>
+                          <div className="flex gap-2">
+                            {[
+                              { value: "kids", label: "Детская", icon: <Baby className="w-3.5 h-3.5" /> },
+                              { value: "sports", label: "Спортивная", icon: <Dumbbell className="w-3.5 h-3.5" /> },
+                              { value: "both", label: "Обе", icon: <TreePine className="w-3.5 h-3.5" /> },
+                            ].map((opt) => (
+                              <button key={opt.value} type="button" onClick={() => setFormType(opt.value)}
+                                className={`flex-1 py-2.5 rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${formType === opt.value ? "bg-primary text-primary-foreground shadow-sm" : "border border-border text-muted-foreground hover:border-primary/50"}`}>
+                                {opt.icon}{opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium mb-1.5">Состояние</Label>
+                          <div className="flex gap-2">
+                            {[
+                              { value: "excellent", label: "Идеально" },
+                              { value: "good", label: "Хорошее" },
+                              { value: "needs_repair", label: "Ремонт" },
+                              { value: "dangerous", label: "Опасно" },
+                            ].map((opt) => (
+                              <button key={opt.value} type="button" onClick={() => setFormCondition(opt.value)}
+                                className={`flex-1 py-2.5 rounded-full text-xs font-medium transition-all ${formCondition === opt.value ? "bg-primary text-primary-foreground shadow-sm" : "border border-border text-muted-foreground hover:border-primary/50"}`}>
+                                {opt.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
 
                       {/* Rating Preview */}
                       <RatingPreview condition={formCondition} equipment={formEquipment} />
@@ -1681,10 +1734,32 @@ export default function HomePage() {
 
                     {/* Submit */}
                     <div className="md:col-span-12 flex justify-end items-center gap-4 mt-2">
-                      <Button type="button" variant="ghost" onClick={() => setActiveTab("home")}>Отмена</Button>
-                      <Button type="submit" size="lg" className="rounded-full px-10 shadow-lg shadow-primary/20" disabled={submitting || !formName || !formAddress}>
-                        {submitting ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />Отправка...</span> : <><Plus className="w-4 h-4 mr-2" />Добавить площадку</>}
-                      </Button>
+                      {editingPlayground !== null ? (
+                        <>
+                          <Button type="button" variant="ghost" onClick={handleCancelEdit}>Отмена</Button>
+                          {editingPlayground.status === "approved" ? (
+                            <Button type="button" size="lg" className="rounded-full px-10 shadow-lg shadow-primary/20" disabled={submitting || !formName || !formAddress} onClick={() => handleFormSubmit()}>
+                              {submitting ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />Сохранение...</span> : <><Edit3 className="w-4 h-4 mr-2" />Сохранить</>}
+                            </Button>
+                          ) : (
+                            <>
+                              <Button type="button" size="lg" variant="outline" className="rounded-full px-8 border-primary/30 text-primary hover:bg-primary/5" disabled={submitting || !formName || !formAddress} onClick={() => handleFormSubmit("pending")}>
+                                {submitting ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />Сохранение...</span> : "Сохранить"}
+                              </Button>
+                              <Button type="button" size="lg" className="rounded-full px-8 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20" disabled={submitting || !formName || !formAddress} onClick={() => handleFormSubmit("approved")}>
+                                <CheckCircle2 className="w-4 h-4 mr-2" />Опубликовать
+                              </Button>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <Button type="button" variant="ghost" onClick={() => setActiveTab("home")}>Отмена</Button>
+                          <Button type="submit" size="lg" className="rounded-full px-10 shadow-lg shadow-primary/20" disabled={submitting || !formName || !formAddress}>
+                            {submitting ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />Отправка...</span> : <><Plus className="w-4 h-4 mr-2" />Добавить площадку</>}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </form>
                 </>
@@ -1774,7 +1849,7 @@ export default function HomePage() {
                                   <ConditionBadge condition={p.condition} />
                                 </div>
                                 {p.description && <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{p.description}</p>}
-                                <div className="flex flex-wrap gap-1.5 mb-3"><TypeBadge type={p.type} /><span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">{p.rating}/100 — {getRatingLabel(p.rating).label}</span></div>
+                                <div className="flex flex-wrap gap-1.5 mb-3"><TypeBadge type={p.type} /><span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary">{(p.rating/20).toFixed(1)} ★ — {getRatingLabel(p.rating).label}</span></div>
                                 {p.submitterName && <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />От: {p.submitterName} {p.submitterEmail && `(${p.submitterEmail})`}</p>}
                               </div>
                               <div className="flex sm:flex-col gap-2 shrink-0">
@@ -1809,7 +1884,7 @@ export default function HomePage() {
                               <tr key={p.id} className="border-t border-border/20 hover:bg-muted/30 transition-colors">
                                 <td className="p-4"><p className="font-medium text-sm text-foreground">{p.name}</p><p className="text-xs text-muted-foreground">{p.address}</p></td>
                                 <td className="p-4 text-sm text-muted-foreground hidden sm:table-cell">{p.city}</td>
-                                <td className="p-4 hidden md:table-cell"><span className={`text-sm font-bold ${getRatingLabel(p.rating).color}`}>{p.rating}</span></td>
+                                <td className="p-4 hidden md:table-cell"><span className={`text-sm font-bold ${getRatingLabel(p.rating).color}`}>{(p.rating/20).toFixed(1)} ★</span></td>
                                 <td className="p-4"><ConditionBadge condition={p.condition} /></td>
                                 <td className="p-4 text-right">
                                   <div className="flex items-center justify-end gap-1">
@@ -1862,15 +1937,7 @@ export default function HomePage() {
         </motion.button>
       )}
 
-      {/* Edit Form Modal */}
-      {editingPlayground && (
-        <PlaygroundEditForm
-          playground={editingPlayground}
-          isOpen={editFormOpen}
-          onClose={() => { setEditFormOpen(false); setEditingPlayground(null); }}
-          onSave={handleSaveEdit}
-        />
-      )}
+
     </div>
   );
 }
