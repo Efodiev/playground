@@ -968,13 +968,10 @@ export default function HomePage() {
   const seedDatabase = useCallback(async () => {
     try {
       await fetch("/api/seed", { method: "POST" });
-      fetchApproved();
-      fetchPending();
-      fetchStats();
     } catch (err) {
       console.error("Error seeding:", err);
     }
-  }, [fetchApproved, fetchPending, fetchStats]);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -983,7 +980,7 @@ export default function HomePage() {
       setLoading(false);
     };
     init();
-  }, [seedDatabase]);
+  }, []);
 
   useEffect(() => {
     fetchApproved();
