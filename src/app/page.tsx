@@ -17,9 +17,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import PlaygroundDetail from "@/components/PlaygroundDetail";
 
 // ==================== TYPES ====================
-type ViewTab = "home" | "registry" | "add" | "admin";
+type ViewTab = "home" | "registry" | "add" | "admin" | "detail";
 
 interface Playground {
   id: string;
@@ -901,6 +902,7 @@ export default function HomePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [detailPlayground, setDetailPlayground] = useState<Playground | null>(null);
+  const [previousTab, setPreviousTab] = useState<ViewTab>("home");
   const { toast } = useToast();
 
   // Form state
@@ -1107,7 +1109,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* ==================== NAVIGATION ==================== */}
-      <nav className="fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/30">
+      <nav className={`fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 transition-transform duration-300 ${activeTab === "detail" ? "-translate-y-full" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button onClick={() => setActiveTab("home")} className="flex items-center gap-2 group">
@@ -1173,7 +1175,15 @@ export default function HomePage() {
       </nav>
 
       {/* ==================== MAIN CONTENT ==================== */}
-      <main className="flex-1 pt-16">
+      <main className={`flex-1 ${activeTab === "detail" ? "pt-0" : "pt-16"}`}>
+        {/* ==================== DETAIL PAGE ==================== */}
+        {activeTab === "detail" && detailPlayground && (
+          <PlaygroundDetail
+            playground={detailPlayground}
+            onBack={() => { setActiveTab(previousTab); setDetailPlayground(null); }}
+          />
+        )}
+
         <AnimatePresence mode="wait">
           {/* ==================== HOME TAB ==================== */}
           {activeTab === "home" && (
@@ -1290,7 +1300,7 @@ export default function HomePage() {
                 </AnimatePresence>
 
                 <div className="rounded-3xl overflow-hidden border border-border/30 shadow-lg">
-                  <MapComponent playgrounds={filteredPlaygrounds} selectedId={selectedPlayground} onSelect={(id) => { setSelectedPlayground(id); const p = playgrounds.find((pg) => pg.id === id); if (p) setDetailPlayground(p); }} height="500px" />
+                  <MapComponent playgrounds={filteredPlaygrounds} selectedId={selectedPlayground} onSelect={(id) => { setSelectedPlayground(id); const p = playgrounds.find((pg) => pg.id === id); if (p) { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); } }} height="500px" />
                 </div>
 
                 {/* Quick cards */}
@@ -1299,7 +1309,7 @@ export default function HomePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredPlaygrounds.slice(0, 6).map((p, i) => (
                       <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                        className="bg-white rounded-3xl p-5 border border-border/30 shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => setDetailPlayground(p)}>
+                        className="bg-white rounded-3xl p-5 border border-border/30 shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); }}>
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${p.type === "kids" ? "bg-pink-50 text-pink-600" : p.type === "sports" ? "bg-blue-50 text-blue-600" : "bg-primary/10 text-primary"}`}>
@@ -1419,7 +1429,7 @@ export default function HomePage() {
                     return (
                       <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                         className={`group bg-white rounded-3xl overflow-hidden border border-border/30 shadow-sm hover:shadow-lg transition-all cursor-pointer ${isLarge ? "md:col-span-8" : isWide ? "md:col-span-8" : "md:col-span-4"}`}
-                        onClick={() => setDetailPlayground(p)}>
+                        onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); }}>
                         <div className={`relative ${isLarge ? "h-64" : isWide ? "h-48" : "h-44"} bg-gradient-to-br from-pistachio-bg to-muted overflow-hidden`}>
                           {photos.length > 0 ? (
                             <img src={photos[0]} alt={p.name} className="w-full h-full object-cover" />
@@ -1762,69 +1772,9 @@ export default function HomePage() {
         </AnimatePresence>
       </main>
 
-      {/* ==================== DETAIL MODAL ==================== */}
-      <AnimatePresence>
-        {detailPlayground && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setDetailPlayground(null)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-background rounded-3xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
-              {/* Header image */}
-              <div className="h-48 bg-gradient-to-br from-pistachio-bg to-muted relative overflow-hidden">
-                {getPhotos(detailPlayground).length > 0 ? (
-                  <img src={getPhotos(detailPlayground)[0]} alt={detailPlayground.name} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-24 h-24 rounded-3xl bg-white/80 backdrop-blur flex items-center justify-center">
-                      {detailPlayground.type === "kids" ? <Baby className="w-12 h-12 text-pink-500" /> : detailPlayground.type === "sports" ? <Dumbbell className="w-12 h-12 text-blue-500" /> : <TreePine className="w-12 h-12 text-primary" />}
-                    </div>
-                  </div>
-                )}
-                <button onClick={() => setDetailPlayground(null)} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur flex items-center justify-center hover:bg-white transition-colors"><X className="w-5 h-5" /></button>
-                <div className="absolute top-4 left-4 flex gap-2"><ConditionBadge condition={detailPlayground.condition} /><TypeBadge type={detailPlayground.type} /></div>
-              </div>
-              {/* Photo gallery thumbnails */}
-              {getPhotos(detailPlayground).length > 1 && (
-                <div className="px-6 -mt-6 relative z-10">
-                  <div className="flex gap-2 overflow-x-auto pb-2">
-                    {getPhotos(detailPlayground).map((photo, i) => (
-                      <div key={i} className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-sm shrink-0">
-                        <img src={photo} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="p-6 sm:p-8">
-                <div className="flex items-start justify-between gap-4 mb-2">
-                  <h2 className="text-2xl font-bold text-foreground">{detailPlayground.name}</h2>
-                  <span className={`text-lg font-bold shrink-0 ${getRatingLabel(detailPlayground.rating).color}`}>{detailPlayground.rating}/100</span>
-                </div>
-                <RatingBar rating={detailPlayground.rating} size="md" />
-                <p className="text-muted-foreground flex items-center gap-1.5 mt-3 mb-4"><MapPin className="w-4 h-4 shrink-0" />{detailPlayground.address}, {detailPlayground.city}</p>
-
-                {detailPlayground.description && <p className="text-foreground/80 mb-6 leading-relaxed">{detailPlayground.description}</p>}
-
-                {getEquipment(detailPlayground).length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="font-semibold text-foreground mb-3">Оборудование</h3>
-                    <div className="flex flex-wrap gap-2">{getEquipment(detailPlayground).map((eq, i) => <span key={i} className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">{eq}</span>)}</div>
-                  </div>
-                )}
-
-                <div className="rounded-2xl overflow-hidden border border-border/30">
-                  <MapComponent playgrounds={[detailPlayground]} center={[detailPlayground.lat, detailPlayground.lng]} zoom={15} height="200px" />
-                </div>
-                <p className="text-xs text-muted-foreground mt-4 flex items-center gap-1.5"><Clock className="w-3 h-3" />Добавлено {new Date(detailPlayground.createdAt).toLocaleDateString("ru-RU")}</p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* ==================== FOOTER ==================== */}
-      <footer className="bg-muted/30 border-t border-border/20 mt-auto">
+      {activeTab !== "detail" && (
+        <footer className="bg-muted/30 border-t border-border/20 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">
@@ -1840,9 +1790,10 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+      )}
 
       {/* FAB */}
-      {activeTab !== "add" && (
+      {activeTab !== "add" && activeTab !== "detail" && (
         <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform" onClick={() => setActiveTab("add")}>
           <Plus className="w-6 h-6" />
         </motion.button>

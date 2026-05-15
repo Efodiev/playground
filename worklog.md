@@ -1,27 +1,28 @@
 ---
-Task ID: 1-7
+Task ID: 3
 Agent: main
-Task: Add districts/settlements to ПЛОЩАДКА app with cascading select, auto-detect, and DB updates
+Task: Replace detail modal with full-page playground detail view
 
 Work Log:
-- Added `district` field to Playground model in Prisma schema
-- Ran db:push to sync schema changes
-- Updated seed route with district information for all 16 playgrounds
-- Updated API routes: GET /api/playgrounds now supports `district` filter param, POST now accepts `district`
-- Replaced flat CITIES array with structured DISTRICTS data (7 districts, ~130 settlements with lat/lng)
-- Added helper functions: sortSettlements(), getAllSettlements(), findNearestSettlement(), getDistrictForSettlement()
-- Added formDistrict state and cascading district→settlement select in Add form
-- Updated MapPicker with onLocationSelect callback for auto-detecting nearest settlement
-- Shows "Определено: [city] ([district] район)" badge when auto-detect triggers
-- Updated filter dropdowns in Home and Registry tabs with district→settlement cascading filters
-- Added filterDistrict state and district query param to fetchApproved
-- Added type import for leaflet (type L from "leaflet") to fix TypeScript issues
-- Hydration mismatch already addressed with suppressHydrationWarning on html and body
-- Lint passes cleanly, DB seeded with 16 records including district field
+- Created `/home/z/my-project/src/components/PlaygroundDetail.tsx` — full-page detail component with:
+  - Hero Gallery Bento (12-col grid: main photo 8 cols + side photos 4 cols)
+  - Primary Info Section (district label, star rating, name, description, like/share buttons)
+  - Bento Details Grid (7+5 cols): description/equipment left, map/status/info right
+  - Reviews Section (mock data placeholder)
+  - Mini Leaflet map (non-interactive) with "Открыть карту" button
+  - Sticky back button bar that hides the main nav when active
+- Updated `src/app/page.tsx`:
+  - Added "detail" to ViewTab type
+  - Added `previousTab` state for back navigation
+  - Replaced modal with full-page PlaygroundDetail component rendered inside `<main>`
+  - Nav bar hides (translate-y-full) when on detail page
+  - Footer and FAB hidden when on detail page
+  - All playground click handlers now set previousTab and navigate to detail
+  - Fixed duplicate import in PlaygroundDetail.tsx (Fence as Railing)
+- Lint passes with zero errors
 
 Stage Summary:
-- All 7 districts of Transnistria with settlements and coordinates added
-- Cascading select works: district first, then settlement (city first, then alphabetical)
-- Auto-detect nearest settlement when clicking on map in Add form
-- District filtering works in API and frontend
-- All existing features preserved (map, registry, admin, detail modal)
+- Detail view is now a full page instead of a modal
+- Apple-style bento layout with photo gallery, equipment icons, map, status card
+- Smooth transitions: nav hides, back button returns to previous tab
+- Reviews section placeholder with mock data
