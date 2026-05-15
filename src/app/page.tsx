@@ -9,7 +9,7 @@ import {
   Navigation, Star, AlertTriangle, Eye, Trash2, Check,
   BarChart3, Users, Map, List, X, Menu,
   Filter, Heart, Sun, Info, Phone, Mail,
-  ImagePlus, GripVertical, Crosshair
+  ImagePlus, GripVertical, Crosshair, Edit3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import PlaygroundDetail from "@/components/PlaygroundDetail";
+import PlaygroundEditForm from "@/components/PlaygroundEditForm";
 
 // ==================== TYPES ====================
 type ViewTab = "home" | "registry" | "add" | "admin" | "detail";
@@ -903,6 +904,8 @@ export default function HomePage() {
   const [submitted, setSubmitted] = useState(false);
   const [detailPlayground, setDetailPlayground] = useState<Playground | null>(null);
   const [previousTab, setPreviousTab] = useState<ViewTab>("home");
+  const [editingPlayground, setEditingPlayground] = useState<Playground | null>(null);
+  const [editFormOpen, setEditFormOpen] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -993,6 +996,24 @@ export default function HomePage() {
     }
   }, [isAdmin, fetchPending, fetchStats]);
 
+  // URL-based navigation: check for ?id= param on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id) {
+      fetch(`/api/playgrounds/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.id) {
+            setDetailPlayground(data);
+            setPreviousTab("home");
+            setActiveTab("detail");
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   // Admin login
   const handleAdminLogin = () => {
     if (adminPassword === "admin123") {
@@ -1033,6 +1054,43 @@ export default function HomePage() {
       fetchStats();
     } catch {
       toast({ title: "Ошибка", description: "Не удалось отклонить заявку", variant: "destructive" });
+    }
+  };
+
+  // Edit playground
+  const handleEditPlayground = (p: Playground) => {
+    setEditingPlayground(p);
+    setEditFormOpen(true);
+  };
+
+  const handleSaveEdit = async (updatedData: Partial<Playground>) => {
+    if (!editingPlayground) return;
+    try {
+      const res = await fetch(`/api/playgrounds/${editingPlayground.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedData),
+      });
+      if (res.ok) {
+        toast({ title: "Сохранено", description: "Данные площадки обновлены" });
+        setEditFormOpen(false);
+        setEditingPlayground(null);
+        // Refresh data
+        fetchApproved();
+        if (isAdmin) {
+          fetchPending();
+          fetchStats();
+        }
+        // If we're viewing this playground's detail, update it
+        if (detailPlayground?.id === editingPlayground.id) {
+          const updated = await res.json();
+          setDetailPlayground(updated);
+        }
+      } else {
+        toast({ title: "Ошибка", description: "Не удалось сохранить изменения", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Ошибка", description: "Не удалось сохранить изменения", variant: "destructive" });
     }
   };
 
@@ -1180,7 +1238,9 @@ export default function HomePage() {
         {activeTab === "detail" && detailPlayground && (
           <PlaygroundDetail
             playground={detailPlayground}
-            onBack={() => { setActiveTab(previousTab); setDetailPlayground(null); }}
+            onBack={() => { setActiveTab(previousTab); setDetailPlayground(null); window.history.pushState({}, '', '/'); }}
+            isAdmin={isAdmin}
+            onEdit={() => handleEditPlayground(detailPlayground)}
           />
         )}
 
@@ -1300,7 +1360,7 @@ export default function HomePage() {
                 </AnimatePresence>
 
                 <div className="rounded-3xl overflow-hidden border border-border/30 shadow-lg">
-                  <MapComponent playgrounds={filteredPlaygrounds} selectedId={selectedPlayground} onSelect={(id) => { setSelectedPlayground(id); const p = playgrounds.find((pg) => pg.id === id); if (p) { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); } }} height="500px" />
+                  <MapComponent playgrounds={filteredPlaygrounds} selectedId={selectedPlayground} onSelect={(id) => { setSelectedPlayground(id); const p = playgrounds.find((pg) => pg.id === id); if (p) { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); } }} height="500px" />
                 </div>
 
                 {/* Quick cards */}
@@ -1309,7 +1369,7 @@ export default function HomePage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredPlaygrounds.slice(0, 6).map((p, i) => (
                       <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                        className="bg-white rounded-3xl p-5 border border-border/30 shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); }}>
+                        className="bg-white rounded-3xl p-5 border border-border/30 shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); }}>
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${p.type === "kids" ? "bg-pink-50 text-pink-600" : p.type === "sports" ? "bg-blue-50 text-blue-600" : "bg-primary/10 text-primary"}`}>
@@ -1429,7 +1489,7 @@ export default function HomePage() {
                     return (
                       <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                         className={`group bg-white rounded-3xl overflow-hidden border border-border/30 shadow-sm hover:shadow-lg transition-all cursor-pointer ${isLarge ? "md:col-span-8" : isWide ? "md:col-span-8" : "md:col-span-4"}`}
-                        onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); }}>
+                        onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); }}>
                         <div className={`relative ${isLarge ? "h-64" : isWide ? "h-48" : "h-44"} bg-gradient-to-br from-pistachio-bg to-muted overflow-hidden`}>
                           {photos.length > 0 ? (
                             <img src={photos[0]} alt={p.name} className="w-full h-full object-cover" />
@@ -1722,6 +1782,7 @@ export default function HomePage() {
                               </div>
                               <div className="flex sm:flex-col gap-2 shrink-0">
                                 <Button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-none" onClick={() => handleApprove(p.id)}><Check className="w-4 h-4 mr-1.5" />Одобрить</Button>
+                                <Button variant="outline" className="rounded-xl flex-1 sm:flex-none border-primary/30 text-primary hover:bg-primary/5" onClick={() => handleEditPlayground(p)}><Edit3 className="w-4 h-4 mr-1.5" />Редактировать</Button>
                                 <Button variant="destructive" className="rounded-xl flex-1 sm:flex-none" onClick={() => handleReject(p.id)}><Trash2 className="w-4 h-4 mr-1.5" />Отклонить</Button>
                               </div>
                             </div>
@@ -1754,9 +1815,14 @@ export default function HomePage() {
                                 <td className="p-4 hidden md:table-cell"><span className={`text-sm font-bold ${getRatingLabel(p.rating).color}`}>{p.rating}</span></td>
                                 <td className="p-4"><ConditionBadge condition={p.condition} /></td>
                                 <td className="p-4 text-right">
-                                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={async () => {
-                                    await fetch(`/api/playgrounds/${p.id}`, { method: "DELETE" }); fetchApproved(); fetchStats(); toast({ title: "Удалено", description: "Площадка удалена" });
-                                  }}><Trash2 className="w-4 h-4" /></Button>
+                                  <div className="flex items-center justify-end gap-1">
+                                    <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/5" onClick={() => handleEditPlayground(p)}>
+                                      <Edit3 className="w-4 h-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={async () => {
+                                      await fetch(`/api/playgrounds/${p.id}`, { method: "DELETE" }); fetchApproved(); fetchStats(); toast({ title: "Удалено", description: "Площадка удалена" });
+                                    }}><Trash2 className="w-4 h-4" /></Button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -1797,6 +1863,16 @@ export default function HomePage() {
         <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform" onClick={() => setActiveTab("add")}>
           <Plus className="w-6 h-6" />
         </motion.button>
+      )}
+
+      {/* Edit Form Modal */}
+      {editingPlayground && (
+        <PlaygroundEditForm
+          playground={editingPlayground}
+          isOpen={editFormOpen}
+          onClose={() => { setEditFormOpen(false); setEditingPlayground(null); }}
+          onSave={handleSaveEdit}
+        />
       )}
     </div>
   );

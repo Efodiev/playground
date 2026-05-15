@@ -76,6 +76,7 @@ interface Playground {
 interface PlaygroundDetailProps {
   playground: Playground;
   onBack: () => void;
+  isAdmin?: boolean;
   onEdit?: () => void;
 }
 
@@ -315,7 +316,7 @@ const MOCK_REVIEWS = [
 ];
 
 // ==================== MAIN COMPONENT ====================
-export default function PlaygroundDetail({ playground, onBack, onEdit }: PlaygroundDetailProps) {
+export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }: PlaygroundDetailProps) {
   const [liked, setLiked] = useState(false);
   const photos = useMemo(() => getPhotos(playground), [playground]);
   const equipment = useMemo(() => getEquipment(playground), [playground]);
@@ -446,12 +447,12 @@ export default function PlaygroundDetail({ playground, onBack, onEdit }: Playgro
               <ArrowLeft className="w-4 h-4 mr-2" />
               Назад
             </Button>
-            {onEdit && (
+            {isAdmin && onEdit && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={onEdit}
-                className="rounded-full border-primary/30 text-primary hover:bg-primary/5"
+                className="rounded-full border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/50"
               >
                 <Edit3 className="w-3.5 h-3.5 mr-1.5" />
                 Редактировать
@@ -534,6 +535,12 @@ export default function PlaygroundDetail({ playground, onBack, onEdit }: Playgro
             <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">
               {playground.district} район • {playground.city}
             </p>
+            {isAdmin && playground.status === "pending" && (
+              <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs mb-2">
+                <Clock className="w-3 h-3 mr-1" />
+                Ожидает модерации
+              </Badge>
+            )}
             {/* Rating stars */}
             <div className="flex items-center gap-3 mb-3">
               <StarRating rating={playground.rating} size="md" />
@@ -579,6 +586,17 @@ export default function PlaygroundDetail({ playground, onBack, onEdit }: Playgro
               onClick={handleShare}
             >
               <Share2 className="w-5 h-5" />
+            </Button>
+          </div>
+
+          {/* Support CTA */}
+          <div className="flex items-center shrink-0 mt-2 sm:mt-6">
+            <Button
+              size="lg"
+              className="rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 px-6"
+            >
+              <Heart className="w-5 h-5 mr-2" />
+              Поддержать
             </Button>
           </div>
         </motion.section>
