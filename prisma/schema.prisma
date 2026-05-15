@@ -17,8 +17,9 @@ model Playground {
   lng         Float
   type        String   @default("kids") // kids | sports | both
   condition   String   @default("good") // excellent | good | needs_repair | dangerous
+  rating      Int      @default(0) // 0-100 auto-calculated score
   status      String   @default("pending") // pending | approved | rejected
-  photos      String   @default("[]") // JSON array of photo URLs
+  photos      String   @default("[]") // JSON array of base64 data URLs
   equipment   String   @default("[]") // JSON array of equipment names
   submitterName  String?
   submitterEmail String?

@@ -1,6 +1,16 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
+// Rating calculation (mirrors frontend)
+const CONDITION_SCORES: Record<string, number> = { excellent: 40, good: 28, needs_repair: 12, dangerous: 0 };
+function calcRating(condition: string, equipmentStr: string): number {
+  let equip: string[] = [];
+  try { equip = JSON.parse(equipmentStr || '[]'); } catch {}
+  const condScore = CONDITION_SCORES[condition] || 0;
+  const equipScore = Math.min(equip.length * 4, 60);
+  return Math.min(condScore + equipScore, 100);
+}
+
 // POST /api/seed - seed database with sample Transnistria playgrounds
 export async function POST() {
   try {
@@ -21,8 +31,8 @@ export async function POST() {
         type: 'kids',
         condition: 'excellent',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/park-pobedy.jpg']),
-        equipment: JSON.stringify(['Горки', 'Качели', 'Песочница', 'Качалка-пружина', 'Лабиринт']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Горки', 'Качели', 'Песочница', 'Качалки', 'Лабиринт', 'Резиновое покрытие', 'Ограждение', 'Лавочки']),
       },
       {
         name: 'Спортивная площадка СШ №2',
@@ -34,8 +44,8 @@ export async function POST() {
         type: 'sports',
         condition: 'good',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/sport-ss2.jpg']),
-        equipment: JSON.stringify(['Турники', 'Брусья', 'Баскетбольное кольцо', 'Скамейки']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Турники', 'Брусья', 'Баскетбольное кольцо', 'Скамейки', 'Освещение']),
       },
       {
         name: 'Площадка «Солнышко»',
@@ -47,8 +57,8 @@ export async function POST() {
         type: 'kids',
         condition: 'good',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/solnyshko.jpg']),
-        equipment: JSON.stringify(['Канатная сетка', 'Горка', 'Качели', 'Игровой домик']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Канатная сетка', 'Горки', 'Качели', 'Игровой домик', 'Лавочки']),
       },
       {
         name: 'Бендерская крепость — Зона отдыха',
@@ -60,8 +70,8 @@ export async function POST() {
         type: 'both',
         condition: 'excellent',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/bendery-fortress.jpg']),
-        equipment: JSON.stringify(['Горки', 'Качели', 'Турники', 'Брусья', 'Песочница']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Горки', 'Качели', 'Турники', 'Брусья', 'Песочница', 'Резиновое покрытие', 'Ограждение']),
       },
       {
         name: 'Парк им. Горького — Спортзона',
@@ -73,8 +83,8 @@ export async function POST() {
         type: 'sports',
         condition: 'excellent',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/gorky-sport.jpg']),
-        equipment: JSON.stringify(['Турники', 'Брусья', 'Шведская стенка', 'Скамья для пресса', 'Кольца']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Турники', 'Брусья', 'Шведская стенка', 'Скамья для пресса', 'Кольца', 'Освещение', 'Резиновое покрытие']),
       },
       {
         name: 'Рыбницкий городской парк',
@@ -86,8 +96,8 @@ export async function POST() {
         type: 'kids',
         condition: 'good',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/rybnitsa-park.jpg']),
-        equipment: JSON.stringify(['Горки', 'Качели', 'Карусель', 'Песочница', 'Качалки']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Горки', 'Качели', 'Карусель', 'Песочница', 'Качалки', 'Лавочки']),
       },
       {
         name: 'Дубоссарский парк культуры',
@@ -99,8 +109,8 @@ export async function POST() {
         type: 'both',
         condition: 'needs_repair',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/dubossary-park.jpg']),
-        equipment: JSON.stringify(['Качели', 'Горка', 'Турник', 'Баскетбольное кольцо']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Качели', 'Горки', 'Турники', 'Баскетбольное кольцо']),
       },
       {
         name: 'Слободзейский детский городок',
@@ -112,8 +122,8 @@ export async function POST() {
         type: 'kids',
         condition: 'good',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/slobodzeya.jpg']),
-        equipment: JSON.stringify(['Качели', 'Песочница', 'Горка', 'Лавочки']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Качели', 'Песочница', 'Горки', 'Лавочки']),
       },
       {
         name: 'Площадка ЖК «Дружба»',
@@ -125,8 +135,8 @@ export async function POST() {
         type: 'kids',
         condition: 'excellent',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/druzhba.jpg']),
-        equipment: JSON.stringify(['Инклюзивные качели', 'Сенсорные панели', 'Горка-туннель', 'Резиновое покрытие', 'Освещение']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Инклюзивные качели', 'Сенсорные панели', 'Горка-туннель', 'Резиновое покрытие', 'Освещение', 'Ограждение', 'Лавочки', 'Теневой навес']),
       },
       {
         name: 'Спортплощадка «Олимп»',
@@ -138,8 +148,60 @@ export async function POST() {
         type: 'sports',
         condition: 'good',
         status: 'approved',
-        photos: JSON.stringify(['/playgrounds/olimp.jpg']),
-        equipment: JSON.stringify(['Мини-футбол', 'Баскетбол', 'Волейбол', 'Турники', 'Раздевалка']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Мини-футбол', 'Баскетбольное кольцо', 'Волейбол', 'Турники', 'Раздевалка', 'Освещение']),
+      },
+      {
+        name: 'Григориопольская центральная площадка',
+        description: 'Детская и спортивная зона в центре Григориополя. Недавно обновлена.',
+        address: 'ул. Ленина, 30',
+        city: 'Григориополь',
+        lat: 47.1520,
+        lng: 29.2950,
+        type: 'both',
+        condition: 'good',
+        status: 'approved',
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Качели', 'Горки', 'Турники', 'Песочница', 'Лавочки']),
+      },
+      {
+        name: 'Каменский парк',
+        description: 'Небольшая детская площадка в райцентре Каменка.',
+        address: 'ул. Кирова, 10',
+        city: 'Каменка',
+        lat: 48.0430,
+        lng: 28.7190,
+        type: 'kids',
+        condition: 'needs_repair',
+        status: 'approved',
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Качели', 'Горки', 'Песочница']),
+      },
+      {
+        name: 'Площадка в селе Парканы',
+        description: 'Сельская детская площадка с базовым оборудованием.',
+        address: 'ул. Центральная, 5',
+        city: 'Парканы',
+        lat: 46.8200,
+        lng: 29.5800,
+        type: 'kids',
+        condition: 'good',
+        status: 'approved',
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Качели', 'Горки', 'Песочница', 'Лавочки']),
+      },
+      {
+        name: 'Спортзона в селе Бутор',
+        description: 'Спортивная площадка в селе Бутор с турниками и футбольным полем.',
+        address: 'ул. Школьная, 1',
+        city: 'Бутор',
+        lat: 47.1000,
+        lng: 29.3500,
+        type: 'sports',
+        condition: 'good',
+        status: 'approved',
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Мини-футбол', 'Турники', 'Брусья']),
       },
       // Pending submissions for admin demo
       {
@@ -152,8 +214,8 @@ export async function POST() {
         type: 'kids',
         condition: 'excellent',
         status: 'pending',
-        photos: JSON.stringify(['/playgrounds/sadovaya-new.jpg']),
-        equipment: JSON.stringify(['Горки', 'Качели', 'Песочница']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify(['Горки', 'Качели', 'Песочница', 'Резиновое покрытие']),
         submitterName: 'Иван Петров',
         submitterEmail: 'ivan@example.com',
       },
@@ -167,15 +229,16 @@ export async function POST() {
         type: 'kids',
         condition: 'dangerous',
         status: 'pending',
-        photos: JSON.stringify(['/playgrounds/abandoned.jpg']),
-        equipment: JSON.stringify(['Сломанные качели', 'Ржавый турник']),
+        photos: JSON.stringify([]),
+        equipment: JSON.stringify([]),
         submitterName: 'Мария Сидорова',
         submitterEmail: 'maria@example.com',
       },
     ]
 
     for (const p of playgrounds) {
-      await db.playground.create({ data: p })
+      const rating = calcRating(p.condition, p.equipment as string);
+      await db.playground.create({ data: { ...p, rating } })
     }
 
     return NextResponse.json({ message: 'Database seeded successfully', count: playgrounds.length })

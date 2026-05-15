@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, description, address, city, lat, lng, type, condition, photos, equipment, submitterName, submitterEmail } = body
+    const { name, description, address, city, lat, lng, type, condition, rating, photos, equipment, submitterName, submitterEmail } = body
 
     if (!name || !address || !city || lat == null || lng == null) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         lng: parseFloat(String(lng)),
         type: type || 'kids',
         condition: condition || 'good',
+        rating: rating || 0,
         status: 'pending',
         photos: JSON.stringify(photos || []),
         equipment: JSON.stringify(equipment || []),
