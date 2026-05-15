@@ -6,6 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const city = searchParams.get('city')
+    const district = searchParams.get('district')
     const type = searchParams.get('type')
     const condition = searchParams.get('condition')
     const search = searchParams.get('search')
@@ -14,6 +15,7 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = { status }
 
     if (city) where.city = city
+    if (district) where.district = district
     if (type) where.type = type
     if (condition) where.condition = condition
     if (search) {
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { name, description, address, city, lat, lng, type, condition, rating, photos, equipment, submitterName, submitterEmail } = body
+    const { name, description, address, city, district, lat, lng, type, condition, rating, photos, equipment, submitterName, submitterEmail } = body
 
     if (!name || !address || !city || lat == null || lng == null) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -52,6 +54,7 @@ export async function POST(req: NextRequest) {
         description: description || null,
         address,
         city,
+        district: district || 'Тираспольский',
         lat: parseFloat(String(lat)),
         lng: parseFloat(String(lng)),
         type: type || 'kids',

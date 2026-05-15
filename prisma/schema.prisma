@@ -13,6 +13,7 @@ model Playground {
   description String?
   address     String
   city        String
+  district    String   @default("Тираспольский")
   lat         Float
   lng         Float
   type        String   @default("kids") // kids | sports | both

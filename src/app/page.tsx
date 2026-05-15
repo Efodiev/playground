@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import type L from "leaflet";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin, Search, Plus, Shield, CheckCircle2, XCircle, Clock,
@@ -26,6 +27,7 @@ interface Playground {
   description: string | null;
   address: string;
   city: string;
+  district: string;
   lat: number;
   lng: number;
   type: string;
@@ -64,52 +66,219 @@ const TYPE_MAP: Record<string, { label: string; icon: React.ReactNode }> = {
   both: { label: "Комбинированная", icon: <TreePine className="w-4 h-4" /> },
 };
 
-// All cities and villages of Transnistria
-const CITIES = [
-  "Все города",
-  // Города
-  "Тирасполь", "Бендеры", "Рыбница", "Дубоссары", "Слободзея",
-  "Григориополь", "Каменка", "Красные Окны",
-  // Посёлки городского типа
-  "Колбасна", "Маяк", "Солнечное",
-  // Сёла и деревни — Тираспольский район
-  "Ближний Хутор", "Воронково", "Глиное", "Градешты", "Делен", "Дойбаны-1",
-  "Дойбаны-2", "Каменка", "Карагаш", "Кошница", "Красногорка", "Кременчуг",
-  "Мереноши", "Молокиш", "Новая Андрияшевка", "Обрезка", "Парканы",
-  "Писаревка", "Победа", "Погребя", "Прибужское", "Приднестровск",
-  "Протягайловка", "Ревяка", "Суклея", "Терновка", "Тираспольский",
-  "Токмазея", "Федосьевка", "Христовая", "Шипка",
-  // Сёла — Бендерский район
-  "Варница", "Гиска", "Липканы", "Новые Кицканы", "Протягайловка",
-  "Садовое", "Советское", "Спея", "Чишмиксия",
-  // Сёла — Слободзейский район
-  "Бессарабка", "Великое", "Гавановка", "Зезуляновка", "Карагаш",
-  "Коротное", "Красное", "Нейловка", "Новый Гымалептя", "Окница",
-  "Парканы", "Первомайск", "Подгорное", "Раздельная", "Рашково",
-  "Слободзея-Молдаваняска", "Старая Слободзея", "Фрунзе", "Хаджимус",
-  "Чобручи", "Широкое",
-  // Сёла — Григориопольский район
-  "Бутор", "Виноградарная", "Войково", "Гояны", "Григориополь",
-  "Деляки", "Дубовая", "Карманово", "Колосово", "Красная Горка",
-  "Красноармейское", "Лозовое", "Малаешты", "Мерешены", "Михайловка",
-  "Новоселовка", "Парканы", "Площадь", "Победа", "Прибужное",
-  "Таирск", "Тейское", "Тираспольское", "Труд", "Шипка",
-  // Сёла — Дубоссарский район
-  "Александровка", "Балашешты", "Ведуштя", "Гояны", "Дойбаны",
-  "Дубово", "Калиновка", "Коржево", "Кошница", "Лунга", "Михайловка",
-  "Новая Кашня", "Новокомиссаровка", "Окница", "Писаревка", "Погребя",
-  "Роги", "Рыбницкое", "Сахарна", "Ульма", "Цибулевка", "Ягорлык",
-  // Сёла — Рыбницкий район
-  "Белочи", "Борщаны", "Бутучаны", "Грушка", "Заборены", "Ивановка",
-  "Кишчены", "Красноенинск", "Ленск", "Михайловка", "Молодово",
-  "Новая Жизнь", "Попенки", "Проданешты", "Сабова", "Стурдзешты",
-  "Сухая Рыбница", "Топалы", "Хлоподыя", "Шираковка",
-  // Сёла — Каменский район
-  "Александровка", "Боданы", "Верхнее", "Грушка", "Гыртоп",
-  "Катовка", "Крупское", "Молодово", "Окница", "Подойма",
-  "Подоймица", "Ротарий", "Севериновка", "Слобода-Рашково",
-  "Сухая", "Тымково", "Хрустовая", "Черепаш", "Шереметьевка",
+// Districts and settlements of Transnistria
+type SettlementType = "city" | "pgt" | "village";
+
+interface Settlement {
+  name: string;
+  type: SettlementType;
+  lat: number;
+  lng: number;
+}
+
+interface District {
+  name: string;
+  settlements: Settlement[];
+}
+
+const DISTRICTS: District[] = [
+  {
+    name: "Тираспольский",
+    settlements: [
+      { name: "Тирасполь", type: "city", lat: 46.8439, lng: 29.6285 },
+      { name: "Ближний Хутор", type: "village", lat: 46.8150, lng: 29.5850 },
+      { name: "Воронково", type: "village", lat: 46.8300, lng: 29.5200 },
+      { name: "Глиное", type: "village", lat: 46.7850, lng: 29.5400 },
+      { name: "Градешты", type: "village", lat: 46.8000, lng: 29.6100 },
+      { name: "Делен", type: "village", lat: 46.8100, lng: 29.5500 },
+      { name: "Карагаш", type: "village", lat: 46.8600, lng: 29.5700 },
+      { name: "Кошница", type: "village", lat: 46.7950, lng: 29.5600 },
+      { name: "Красногорка", type: "village", lat: 46.8200, lng: 29.5300 },
+      { name: "Молокиш", type: "village", lat: 46.8400, lng: 29.5100 },
+      { name: "Парканы", type: "village", lat: 46.8200, lng: 29.5800 },
+      { name: "Писаревка", type: "village", lat: 46.7900, lng: 29.6000 },
+      { name: "Победа", type: "village", lat: 46.8050, lng: 29.5750 },
+      { name: "Погребя", type: "village", lat: 46.8250, lng: 29.6450 },
+      { name: "Приднестровск", type: "pgt", lat: 46.8350, lng: 29.5950 },
+      { name: "Протягайловка", type: "village", lat: 46.8100, lng: 29.6200 },
+      { name: "Суклея", type: "village", lat: 46.7900, lng: 29.6500 },
+      { name: "Терновка", type: "village", lat: 46.8550, lng: 29.6100 },
+      { name: "Токмазея", type: "village", lat: 46.8080, lng: 29.5400 },
+      { name: "Федосьевка", type: "village", lat: 46.8180, lng: 29.6350 },
+      { name: "Христовая", type: "village", lat: 46.7930, lng: 29.6150 },
+      { name: "Шипка", type: "village", lat: 46.7980, lng: 29.6250 },
+    ],
+  },
+  {
+    name: "Бендерский",
+    settlements: [
+      { name: "Бендеры", type: "city", lat: 46.8290, lng: 29.4740 },
+      { name: "Варница", type: "village", lat: 46.8100, lng: 29.4600 },
+      { name: "Гиска", type: "village", lat: 46.8150, lng: 29.4400 },
+      { name: "Липканы", type: "village", lat: 46.7950, lng: 29.4300 },
+      { name: "Новые Кицканы", type: "village", lat: 46.8000, lng: 29.4800 },
+      { name: "Садовое", type: "village", lat: 46.8200, lng: 29.4500 },
+      { name: "Советское", type: "village", lat: 46.8050, lng: 29.4700 },
+      { name: "Спея", type: "village", lat: 46.7900, lng: 29.4900 },
+      { name: "Чишмиксия", type: "village", lat: 46.7850, lng: 29.4550 },
+    ],
+  },
+  {
+    name: "Слободзейский",
+    settlements: [
+      { name: "Слободзея", type: "city", lat: 46.7380, lng: 29.7030 },
+      { name: "Бессарабка", type: "village", lat: 46.7200, lng: 29.6800 },
+      { name: "Великое", type: "village", lat: 46.7500, lng: 29.7300 },
+      { name: "Гавановка", type: "village", lat: 46.7250, lng: 29.7100 },
+      { name: "Зезуляновка", type: "village", lat: 46.7400, lng: 29.6900 },
+      { name: "Коротное", type: "village", lat: 46.7550, lng: 29.7400 },
+      { name: "Красное", type: "village", lat: 46.7300, lng: 29.7200 },
+      { name: "Нейловка", type: "village", lat: 46.7150, lng: 29.6950 },
+      { name: "Первомайск", type: "village", lat: 46.7450, lng: 29.7150 },
+      { name: "Подгорное", type: "village", lat: 46.7600, lng: 29.7500 },
+      { name: "Рашково", type: "village", lat: 46.7350, lng: 29.7600 },
+      { name: "Слободзея-Молдаваняска", type: "village", lat: 46.7280, lng: 29.7050 },
+      { name: "Фрунзе", type: "village", lat: 46.7480, lng: 29.6850 },
+      { name: "Хаджимус", type: "village", lat: 46.7550, lng: 29.6950 },
+      { name: "Чобручи", type: "village", lat: 46.7100, lng: 29.6750 },
+      { name: "Широкое", type: "village", lat: 46.7620, lng: 29.7300 },
+    ],
+  },
+  {
+    name: "Григориопольский",
+    settlements: [
+      { name: "Григориополь", type: "city", lat: 47.1520, lng: 29.2950 },
+      { name: "Бутор", type: "village", lat: 47.1000, lng: 29.3500 },
+      { name: "Войково", type: "village", lat: 47.1300, lng: 29.2700 },
+      { name: "Гояны", type: "village", lat: 47.1100, lng: 29.3200 },
+      { name: "Деляки", type: "village", lat: 47.1400, lng: 29.3100 },
+      { name: "Дубовая", type: "village", lat: 47.1200, lng: 29.2800 },
+      { name: "Карманово", type: "village", lat: 47.1350, lng: 29.3300 },
+      { name: "Колосово", type: "village", lat: 47.1250, lng: 29.2900 },
+      { name: "Красная Горка", type: "village", lat: 47.1450, lng: 29.3400 },
+      { name: "Красноармейское", type: "village", lat: 47.1150, lng: 29.3000 },
+      { name: "Лозовое", type: "village", lat: 47.1550, lng: 29.3100 },
+      { name: "Малаешты", type: "village", lat: 47.1050, lng: 29.2850 },
+      { name: "Мерешены", type: "village", lat: 47.1600, lng: 29.3250 },
+      { name: "Михайловка", type: "village", lat: 47.1180, lng: 29.3150 },
+      { name: "Таирск", type: "village", lat: 47.1380, lng: 29.2700 },
+      { name: "Тейское", type: "village", lat: 47.1480, lng: 29.3050 },
+      { name: "Труд", type: "village", lat: 47.1080, lng: 29.2950 },
+    ],
+  },
+  {
+    name: "Дубоссарский",
+    settlements: [
+      { name: "Дубоссары", type: "city", lat: 47.2610, lng: 29.1650 },
+      { name: "Александровка", type: "village", lat: 47.2400, lng: 29.1400 },
+      { name: "Балашешты", type: "village", lat: 47.2500, lng: 29.1200 },
+      { name: "Гояны", type: "village", lat: 47.2300, lng: 29.1800 },
+      { name: "Дойбаны", type: "village", lat: 47.2700, lng: 29.1300 },
+      { name: "Дубово", type: "village", lat: 47.2450, lng: 29.1900 },
+      { name: "Калиновка", type: "village", lat: 47.2550, lng: 29.1500 },
+      { name: "Коржево", type: "village", lat: 47.2750, lng: 29.1700 },
+      { name: "Кошница", type: "village", lat: 47.2350, lng: 29.1550 },
+      { name: "Лунга", type: "village", lat: 47.2650, lng: 29.1800 },
+      { name: "Михайловка", type: "village", lat: 47.2800, lng: 29.1450 },
+      { name: "Новокомиссаровка", type: "village", lat: 47.2480, lng: 29.1350 },
+      { name: "Погребя", type: "village", lat: 47.2250, lng: 29.1600 },
+      { name: "Роги", type: "village", lat: 47.2900, lng: 29.1500 },
+      { name: "Ульма", type: "village", lat: 47.2150, lng: 29.1400 },
+      { name: "Ягорлык", type: "village", lat: 47.3000, lng: 29.1300 },
+    ],
+  },
+  {
+    name: "Рыбницкий",
+    settlements: [
+      { name: "Рыбница", type: "city", lat: 47.7835, lng: 28.9915 },
+      { name: "Белочи", type: "village", lat: 47.7600, lng: 28.9600 },
+      { name: "Борщаны", type: "village", lat: 47.7700, lng: 29.0200 },
+      { name: "Бутучаны", type: "village", lat: 47.7500, lng: 28.9800 },
+      { name: "Грушка", type: "village", lat: 47.7900, lng: 29.0100 },
+      { name: "Заборены", type: "village", lat: 47.7400, lng: 28.9700 },
+      { name: "Ивановка", type: "village", lat: 47.8000, lng: 28.9900 },
+      { name: "Колбасна", type: "pgt", lat: 47.8100, lng: 29.0300 },
+      { name: "Красноенинск", type: "village", lat: 47.7550, lng: 29.0300 },
+      { name: "Ленск", type: "village", lat: 47.7700, lng: 28.9500 },
+      { name: "Молодово", type: "village", lat: 47.7300, lng: 28.9900 },
+      { name: "Попенки", type: "village", lat: 47.7650, lng: 29.0400 },
+      { name: "Проданешты", type: "village", lat: 47.7450, lng: 28.9600 },
+      { name: "Сабова", type: "village", lat: 47.7350, lng: 29.0100 },
+      { name: "Стурдзешты", type: "village", lat: 47.8150, lng: 29.0200 },
+      { name: "Сухая Рыбница", type: "village", lat: 47.7750, lng: 28.9700 },
+      { name: "Топалы", type: "village", lat: 47.7200, lng: 28.9800 },
+      { name: "Хлоподыя", type: "village", lat: 47.7850, lng: 29.0400 },
+      { name: "Шираковка", type: "village", lat: 47.7250, lng: 29.0050 },
+    ],
+  },
+  {
+    name: "Каменский",
+    settlements: [
+      { name: "Каменка", type: "city", lat: 48.0430, lng: 28.7190 },
+      { name: "Александровка", type: "village", lat: 48.0200, lng: 28.7000 },
+      { name: "Боданы", type: "village", lat: 48.0300, lng: 28.7400 },
+      { name: "Верхнее", type: "village", lat: 48.0500, lng: 28.7500 },
+      { name: "Грушка", type: "village", lat: 48.0100, lng: 28.6800 },
+      { name: "Гыртоп", type: "village", lat: 48.0600, lng: 28.7100 },
+      { name: "Катовка", type: "village", lat: 48.0250, lng: 28.7300 },
+      { name: "Крупское", type: "village", lat: 48.0350, lng: 28.6900 },
+      { name: "Молодово", type: "village", lat: 48.0550, lng: 28.7250 },
+      { name: "Подойма", type: "village", lat: 48.0150, lng: 28.7500 },
+      { name: "Подоймица", type: "village", lat: 48.0180, lng: 28.7550 },
+      { name: "Ротарий", type: "village", lat: 48.0400, lng: 28.7600 },
+      { name: "Севериновка", type: "village", lat: 48.0700, lng: 28.7300 },
+      { name: "Слобода-Рашково", type: "village", lat: 47.9900, lng: 28.7100 },
+      { name: "Тымково", type: "village", lat: 48.0450, lng: 28.6800 },
+      { name: "Хрустовая", type: "village", lat: 48.0800, lng: 28.7400 },
+      { name: "Шереметьевка", type: "village", lat: 48.0600, lng: 28.7000 },
+    ],
+  },
 ];
+
+// Sort settlements: city first, then pgt, then village in alphabetical order
+function sortSettlements(settlements: Settlement[]): Settlement[] {
+  const typeOrder: Record<SettlementType, number> = { city: 0, pgt: 1, village: 2 };
+  return [...settlements].sort((a, b) => {
+    const typeDiff = typeOrder[a.type] - typeOrder[b.type];
+    if (typeDiff !== 0) return typeDiff;
+    return a.name.localeCompare(b.name, 'ru');
+  });
+}
+
+// Get all settlements flattened
+function getAllSettlements(): Settlement[] {
+  return DISTRICTS.flatMap(d => d.settlements);
+}
+
+// Find nearest settlement to a given coordinate
+function findNearestSettlement(lat: number, lng: number): { settlement: Settlement; district: District } | null {
+  let minDist = Infinity;
+  let result: { settlement: Settlement; district: District } | null = null;
+
+  for (const district of DISTRICTS) {
+    for (const settlement of district.settlements) {
+      const dist = Math.sqrt(
+        Math.pow(settlement.lat - lat, 2) + Math.pow(settlement.lng - lng, 2)
+      );
+      if (dist < minDist) {
+        minDist = dist;
+        result = { settlement, district };
+      }
+    }
+  }
+
+  return result;
+}
+
+// Get district name for a given settlement name
+function getDistrictForSettlement(settlementName: string): string {
+  for (const district of DISTRICTS) {
+    if (district.settlements.some(s => s.name === settlementName)) {
+      return district.name;
+    }
+  }
+  return "Тираспольский";
+}
 
 const EQUIPMENT_OPTIONS = {
   entertainment: { label: "Развлечения", items: ["Горки", "Качели", "Песочница", "Карусель", "Качалки", "Игровой домик", "Лабиринт", "Канатная сетка", "Батут", "Горка-туннель", "Сенсорные панели"] },
@@ -335,10 +504,16 @@ function MapPicker({
   lat,
   lng,
   onChange,
+  onLocationSelect,
+  autoDetectedCity,
+  autoDetectedDistrict,
 }: {
   lat: number;
   lng: number;
   onChange: (lat: number, lng: number) => void;
+  onLocationSelect?: (lat: number, lng: number, district: string, city: string) => void;
+  autoDetectedCity?: string;
+  autoDetectedDistrict?: string;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -379,11 +554,19 @@ function MapPicker({
       marker.on("dragend", () => {
         const pos = marker.getLatLng();
         onChange(pos.lat, pos.lng);
+        const nearest = findNearestSettlement(pos.lat, pos.lng);
+        if (nearest && onLocationSelect) {
+          onLocationSelect(pos.lat, pos.lng, nearest.district.name, nearest.settlement.name);
+        }
       });
 
       map.on("click", (e: L.LeafletMouseEvent) => {
         marker.setLatLng(e.latlng);
         onChange(e.latlng.lat, e.latlng.lng);
+        const nearest = findNearestSettlement(e.latlng.lat, e.latlng.lng);
+        if (nearest && onLocationSelect) {
+          onLocationSelect(e.latlng.lat, e.latlng.lng, nearest.district.name, nearest.settlement.name);
+        }
       });
 
       // Force invalidate size after mount
@@ -439,6 +622,12 @@ function MapPicker({
           <MapPin className="w-3 h-3 text-primary" />
           Координаты: {lat.toFixed(6)}, {lng.toFixed(6)}
         </p>
+      )}
+      {isOpen && autoDetectedCity && autoDetectedDistrict && (
+        <div className="flex items-center gap-2 mt-2 px-3 py-2 bg-primary/5 rounded-xl border border-primary/20">
+          <MapPin className="w-3.5 h-3.5 text-primary" />
+          <span className="text-xs text-foreground">Определено: <strong>{autoDetectedCity}</strong> ({autoDetectedDistrict} район)</span>
+        </div>
       )}
     </div>
   );
@@ -701,7 +890,8 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [selectedPlayground, setSelectedPlayground] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterCity, setFilterCity] = useState("Все города");
+  const [filterCity, setFilterCity] = useState("all");
+  const [filterDistrict, setFilterDistrict] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [filterCondition, setFilterCondition] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -717,6 +907,7 @@ export default function HomePage() {
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formAddress, setFormAddress] = useState("");
+  const [formDistrict, setFormDistrict] = useState("Тираспольский");
   const [formCity, setFormCity] = useState("Тирасполь");
   const [formLat, setFormLat] = useState(46.84);
   const [formLng, setFormLng] = useState(29.63);
@@ -735,7 +926,8 @@ export default function HomePage() {
     try {
       const params = new URLSearchParams();
       if (searchQuery) params.set("search", searchQuery);
-      if (filterCity !== "Все города") params.set("city", filterCity);
+      if (filterDistrict !== "all") params.set("district", filterDistrict);
+      if (filterCity !== "all") params.set("city", filterCity);
       if (filterType !== "all") params.set("type", filterType);
       if (filterCondition !== "all") params.set("condition", filterCondition);
       params.set("status", "approved");
@@ -746,7 +938,7 @@ export default function HomePage() {
     } catch (err) {
       console.error("Error fetching playgrounds:", err);
     }
-  }, [searchQuery, filterCity, filterType, filterCondition]);
+  }, [searchQuery, filterDistrict, filterCity, filterType, filterCondition]);
 
   const fetchPending = useCallback(async () => {
     try {
@@ -855,6 +1047,7 @@ export default function HomePage() {
           description: formDescription,
           address: formAddress,
           city: formCity,
+          district: formDistrict,
           lat: formLat,
           lng: formLng,
           type: formType,
@@ -1028,7 +1221,7 @@ export default function HomePage() {
                       </div>
                       <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 hover:shadow-md transition-shadow">
                         <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4"><CheckCircle2 className="w-6 h-6 text-emerald-600" /></div>
-                        <p className="text-3xl font-bold text-foreground">{CITIES.length - 1}</p>
+                        <p className="text-3xl font-bold text-foreground">{getAllSettlements().length}</p>
                         <p className="text-sm text-muted-foreground mt-1">Населённых пунктов</p>
                       </div>
                     </motion.div>
@@ -1063,9 +1256,20 @@ export default function HomePage() {
                           </div>
                         </div>
                         <div className="min-w-[160px]">
-                          <Label className="text-xs text-muted-foreground mb-1.5">Город</Label>
+                          <Label className="text-xs text-muted-foreground mb-1.5">Район</Label>
+                          <select className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterDistrict} onChange={(e) => { setFilterDistrict(e.target.value); setFilterCity("all"); }}>
+                            <option value="all">Все районы</option>
+                            {DISTRICTS.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="min-w-[160px]">
+                          <Label className="text-xs text-muted-foreground mb-1.5">Населённый пункт</Label>
                           <select className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterCity} onChange={(e) => setFilterCity(e.target.value)}>
-                            {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                            <option value="all">Все населённые пункты</option>
+                            {(filterDistrict === "all" ? getAllSettlements() : DISTRICTS.find(d => d.name === filterDistrict)?.settlements || [])
+                              .filter((s, i, arr) => arr.findIndex(x => x.name === s.name) === i)
+                              .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+                              .map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
                           </select>
                         </div>
                         <div className="min-w-[140px]">
@@ -1135,7 +1339,7 @@ export default function HomePage() {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 text-center"><TreePine className="w-8 h-8 text-primary mx-auto mb-3" /><p className="text-2xl font-bold text-foreground">{stats?.approved || 0}</p><p className="text-xs text-muted-foreground mt-1">Площадок</p></div>
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 text-center mt-8"><MapPin className="w-8 h-8 text-primary mx-auto mb-3" /><p className="text-2xl font-bold text-foreground">{CITIES.length - 1}</p><p className="text-xs text-muted-foreground mt-1">Населённых пунктов</p></div>
+                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 text-center mt-8"><MapPin className="w-8 h-8 text-primary mx-auto mb-3" /><p className="text-2xl font-bold text-foreground">{getAllSettlements().length}</p><p className="text-xs text-muted-foreground mt-1">Населённых пунктов</p></div>
                       <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 text-center"><Users className="w-8 h-8 text-primary mx-auto mb-3" /><p className="text-2xl font-bold text-foreground">1.2k</p><p className="text-xs text-muted-foreground mt-1">Пользователей</p></div>
                       <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 text-center mt-8"><Sun className="w-8 h-8 text-primary mx-auto mb-3" /><p className="text-2xl font-bold text-foreground">100%</p><p className="text-xs text-muted-foreground mt-1">Бесплатно</p></div>
                     </div>
@@ -1178,8 +1382,16 @@ export default function HomePage() {
                       <div className="flex-1 min-w-[180px]">
                         <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Поиск..." className="pl-9 rounded-xl" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
                       </div>
+                      <select className="h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterDistrict} onChange={(e) => { setFilterDistrict(e.target.value); setFilterCity("all"); }}>
+                        <option value="all">Все районы</option>
+                        {DISTRICTS.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
+                      </select>
                       <select className="h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterCity} onChange={(e) => setFilterCity(e.target.value)}>
-                        {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        <option value="all">Все населённые пункты</option>
+                        {(filterDistrict === "all" ? getAllSettlements() : DISTRICTS.find(d => d.name === filterDistrict)?.settlements || [])
+                          .filter((s, i, arr) => arr.findIndex(x => x.name === s.name) === i)
+                          .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+                          .map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
                       </select>
                       <select className="h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                         <option value="all">Все типы</option><option value="kids">Детские</option><option value="sports">Спортивные</option><option value="both">Комбинированные</option>
@@ -1317,12 +1529,42 @@ export default function HomePage() {
                             <Input placeholder="ул. Парковая, д. 12" className="rounded-xl" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} required />
                           </div>
                           <div>
-                            <Label className="text-xs text-muted-foreground">Город / Село</Label>
-                            <select className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" value={formCity} onChange={(e) => setFormCity(e.target.value)}>
-                              {CITIES.filter((c) => c !== "Все города").map((c) => <option key={c} value={c}>{c}</option>)}
+                            <Label className="text-xs text-muted-foreground">Район</Label>
+                            <select className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm"
+                              value={formDistrict}
+                              onChange={(e) => {
+                                setFormDistrict(e.target.value);
+                                const district = DISTRICTS.find(d => d.name === e.target.value);
+                                if (district) {
+                                  const sorted = sortSettlements(district.settlements);
+                                  setFormCity(sorted[0]?.name || "");
+                                }
+                              }}>
+                              {DISTRICTS.map((d) => <option key={d.name} value={d.name}>{d.name} район</option>)}
                             </select>
                           </div>
-                          <MapPicker lat={formLat} lng={formLng} onChange={(lat, lng) => { setFormLat(lat); setFormLng(lng); }} />
+                          <div>
+                            <Label className="text-xs text-muted-foreground">Населённый пункт</Label>
+                            <select className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm"
+                              value={formCity}
+                              onChange={(e) => setFormCity(e.target.value)}>
+                              {sortSettlements(DISTRICTS.find(d => d.name === formDistrict)?.settlements || []).map((s) => (
+                                <option key={s.name} value={s.name}>{s.name} {s.type === 'city' ? '(г.)' : s.type === 'pgt' ? '(пгт)' : '(с.)'}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <MapPicker
+                            lat={formLat} lng={formLng}
+                            onChange={(lat, lng) => { setFormLat(lat); setFormLng(lng); }}
+                            onLocationSelect={(lat, lng, district, city) => {
+                              setFormLat(lat);
+                              setFormLng(lng);
+                              setFormDistrict(district);
+                              setFormCity(city);
+                            }}
+                            autoDetectedCity={formCity}
+                            autoDetectedDistrict={formDistrict}
+                          />
                         </div>
                       </div>
 
@@ -1386,7 +1628,7 @@ export default function HomePage() {
                   <p className="text-lg text-muted-foreground max-w-md mx-auto mb-8">Ваша заявка отправлена на модерацию. После проверки площадка появится на карте и в реестре.</p>
                   <div className="flex justify-center gap-4">
                     <Button variant="outline" className="rounded-full px-6" onClick={() => {
-                      setSubmitted(false); setFormName(""); setFormDescription(""); setFormAddress(""); setFormCity("Тирасполь");
+                      setSubmitted(false); setFormName(""); setFormDescription(""); setFormAddress(""); setFormDistrict("Тираспольский"); setFormCity("Тирасполь");
                       setFormLat(46.84); setFormLng(29.63); setFormType("kids"); setFormCondition("good"); setFormEquipment([]);
                       setFormSubmitterName(""); setFormSubmitterEmail(""); setFormPhotos([]);
                     }}>Добавить ещё</Button>
