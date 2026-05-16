@@ -113,3 +113,27 @@ Stage Summary:
 - All 7 districts updated per user's specification
 - 154 total settlements across all districts
 - Database reseeded successfully with 21 playgrounds
+
+---
+Task ID: 4
+Agent: main
+Task: Move mobile navigation from top-right hamburger to bottom tab bar
+
+Work Log:
+- Removed hamburger Menu button and dropdown mobile menu from top navigation bar
+- Removed `mobileMenuOpen` state variable (no longer needed)
+- Removed `Menu` import from lucide-react
+- Added fixed bottom navigation bar (`md:hidden`) with 4 tab buttons: Карта, Реестр, Добавить, Ещё
+- Bottom nav uses `pb-[env(safe-area-inset-bottom)]` for iOS safe area support
+- Active tab shown with pistachio green color and bold icon (strokeWidth 2.5)
+- Inactive tabs shown with muted-foreground color
+- Bottom nav hidden when in "detail" view (like the top nav)
+- Changed FAB (floating action button) from always-visible to `md:hidden` → `hidden md:flex` (desktop only)
+- Added `pb-20 md:pb-0` to main content for bottom padding on mobile (accounts for bottom nav height)
+- Renamed admin tab label to "Ещё" in mobile bottom nav for brevity
+
+Stage Summary:
+- Mobile navigation now uses bottom tab bar pattern (standard iOS/Android pattern)
+- Desktop navigation unchanged (top nav bar with pill buttons)
+- FAB button only shown on desktop (mobile has "Добавить" in bottom nav)
+- Clean compilation, no errors

@@ -7,7 +7,7 @@ import {
   MapPin, Search, Plus, Shield, CheckCircle2, XCircle, Clock,
   TreePine, Dumbbell, Baby, ChevronDown, Upload, Camera,
   Navigation, Star, AlertTriangle, Eye, Trash2, Check,
-  BarChart3, Users, Map, List, X, Menu,
+  BarChart3, Users, Map, List, X,
   Filter, Heart, Sun, Info, Phone, Mail,
   ImagePlus, GripVertical, Crosshair, Edit3
 } from "lucide-react";
@@ -934,7 +934,6 @@ export default function HomePage() {
   const [filterType, setFilterType] = useState("all");
   const [filterCondition, setFilterCondition] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -1240,9 +1239,17 @@ export default function HomePage() {
     { id: "admin" as ViewTab, label: "Админ", icon: <Shield className="w-4 h-4" /> },
   ];
 
+  // Bottom nav items for mobile (different icon sizes)
+  const bottomNavItems = [
+    { id: "home" as ViewTab, label: "Карта", Icon: Map },
+    { id: "registry" as ViewTab, label: "Реестр", Icon: List },
+    { id: "add" as ViewTab, label: "Добавить", Icon: Plus },
+    { id: "admin" as ViewTab, label: "Ещё", Icon: Shield },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* ==================== NAVIGATION ==================== */}
+      {/* ==================== NAVIGATION (Desktop) ==================== */}
       <nav className={`fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 transition-transform duration-300 ${activeTab === "detail" ? "-translate-y-full" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -1272,44 +1279,37 @@ export default function HomePage() {
               ))}
             </div>
 
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl hover:bg-muted transition-colors"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+            {/* Mobile: only logo visible, no hamburger */}
+            <div className="md:hidden" />
           </div>
         </div>
-
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-border/30 bg-background/95 backdrop-blur-xl"
-            >
-              <div className="px-4 py-3 space-y-1">
-                {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => { setActiveTab(item.id); setMobileMenuOpen(false); }}
-                    className={`flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-medium transition-all ${
-                      activeTab === item.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </nav>
 
+      {/* ==================== BOTTOM NAVIGATION (Mobile) ==================== */}
+      {activeTab !== "detail" && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-border/30 pb-[env(safe-area-inset-bottom)]">
+          <div className="flex items-center justify-around h-16">
+            {bottomNavItems.map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors duration-200 ${
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  }`}
+                >
+                  <item.Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? "scale-110" : ""}`} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className={`text-[10px] font-medium leading-tight ${isActive ? "font-semibold" : ""}`}>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ==================== MAIN CONTENT ==================== */}
-      <main className={`flex-1 ${activeTab === "detail" ? "pt-0" : "pt-16"}`}>
+      <main className={`flex-1 ${activeTab === "detail" ? "pt-0" : "pt-16 pb-20 md:pb-0"}`}>
         {/* ==================== DETAIL PAGE ==================== */}
         {activeTab === "detail" && detailPlayground && (
           <PlaygroundDetail
@@ -1968,9 +1968,9 @@ export default function HomePage() {
       </footer>
       )}
 
-      {/* FAB */}
+      {/* FAB (desktop only) */}
       {activeTab !== "add" && activeTab !== "detail" && (
-        <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform" onClick={() => setActiveTab("add")}>
+        <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} className="hidden md:flex fixed bottom-6 right-6 z-40 w-14 h-14 rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 items-center justify-center hover:scale-110 active:scale-95 transition-transform" onClick={() => setActiveTab("add")}>
           <Plus className="w-6 h-6" />
         </motion.button>
       )}
