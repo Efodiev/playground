@@ -137,3 +137,114 @@ Stage Summary:
 - Desktop navigation unchanged (top nav bar with pill buttons)
 - FAB button only shown on desktop (mobile has "Добавить" in bottom nav)
 - Clean compilation, no errors
+
+---
+Task ID: 5
+Agent: main
+Task: Comprehensive mobile redesign for quality, beauty, and convenience
+
+Work Log:
+- Redesigned bottom navigation with premium feel: raised circular "Добавить" button, active dot indicators, glass morphism, min 44px touch targets
+- Compact mobile header (h-14 on mobile vs h-16 on desktop) with search icon button
+- Hero section: smaller text/padding on mobile, CTA buttons stack vertically, stats grid as horizontal scrolling chips
+- Map: responsive height (300px mobile / 500px desktop), "Рядом с вами" cards horizontal scroll on mobile
+- Registry: compact cards on mobile, responsive filter card styling
+- Add form: compact padding (p-4/p-6), photo grid 3 cols mobile / 5 desktop, equipment 2 cols / 4 desktop, sticky submit bar positioned above bottom nav
+- Mission section: compact mobile layout, smaller stats cards
+- CTA section: compact on mobile, full-width button
+- Footer hidden on mobile (bottom nav serves same purpose)
+- Detail view: single hero image on mobile (bento grid on desktop), compact buttons, reduced spacing
+- MapComponent uses CSS responsive height instead of inline style
+
+Stage Summary:
+- Complete mobile-first redesign across all 5 views (Home, Registry, Add, Admin, Detail)
+- Premium bottom navigation with raised center button
+- Responsive spacing, typography, and layouts throughout
+- Horizontal scrolling for card lists on mobile
+- Sticky submit bar on Add form (positioned above bottom nav)
+- Desktop layouts completely unchanged
+- ESLint passes, dev server compiles successfully
+
+---
+Task ID: 5
+Agent: main
+Task: Comprehensive mobile UX improvements for ПЛОЩАДКА app
+
+Work Log:
+
+### 1. Bottom Navigation — Premium feel
+- Replaced flat bottom nav with polished version featuring:
+  - Better glass morphism: `bg-background/80 backdrop-blur-2xl` with `shadow-[0_-4px_20px_rgba(0,0,0,0.08)]`
+  - The "Добавить" (Add) button is now a raised circular button with `bg-primary text-primary-foreground` and `shadow-lg shadow-primary/30`, positioned with `-mt-5` to float above the bar
+  - Active state: bolder icon (strokeWidth 2.5), bold text, small dot indicator below
+  - Minimum touch targets: `min-w-[44px] min-h-[44px]`
+  - `items-end` alignment to properly position the raised center button
+
+### 2. Top Header — Compact mobile version
+- Mobile header height: `h-14 md:h-16` (reduced from h-16)
+- Logo text smaller on mobile: `text-lg md:text-xl`
+- Replaced empty `<div className="md:hidden" />` with a search icon button that switches to registry tab
+- Updated main content padding: `pt-14 md:pt-16`
+
+### 3. Hero Section — Compact mobile version
+- Padding: `py-8 sm:py-12 lg:py-20` (was `py-12 sm:py-20`)
+- Heading: `text-2xl sm:text-4xl lg:text-6xl` (was `text-4xl sm:text-5xl lg:text-6xl`)
+- Subtext: `text-sm sm:text-lg` (was `text-lg`)
+- Badge: `mb-4 sm:mb-6`, `text-xs sm:text-sm`, `px-3 sm:px-4`
+- CTA buttons: Stack vertically on mobile with `flex-col sm:flex-row`, full width on mobile `w-full sm:w-auto`
+- Stats grid: Changed from `grid grid-cols-2` to horizontal scrolling `flex lg:grid lg:grid-cols-2` with snap scroll, compact cards with `min-w-[140px] lg:min-w-0 snap-start`
+
+### 4. Map Section — Mobile-friendly
+- Map height: Changed from fixed `height="500px"` to `height="300px"` (mobile-friendly, desktop uses full height)
+- Map container: `rounded-2xl sm:rounded-3xl`
+- Section padding: `py-8 sm:py-12`
+- Title: `text-xl sm:text-2xl md:text-3xl`
+- Filter button: Separate mobile (`size="sm"`) and desktop versions
+- "Рядом с вами" section: Horizontal scroll on mobile `flex sm:grid sm:grid-cols-2 lg:grid-cols-3` with snap, `min-w-[260px] sm:min-w-0 snap-start`
+
+### 5. Registry — Mobile-optimized cards
+- Section padding: `py-6 sm:py-8`
+- Heading: `text-xl sm:text-3xl`
+- Subtitle: truncated to just count on mobile
+- Card image heights: Smaller on mobile `h-48 sm:h-64`, `h-36 sm:h-48`, `h-36 sm:h-44`
+- Card padding: `p-4 sm:p-5`
+- Card radius: `rounded-2xl sm:rounded-3xl`
+- Card text: `text-sm sm:text-base` for titles, `text-xs sm:text-sm` for addresses
+
+### 6. Add Form — Mobile-optimized
+- Heading: `text-xl sm:text-3xl` (was `text-3xl`)
+- All card padding: `p-4 sm:p-6` with `rounded-2xl sm:rounded-3xl`
+- Photo grid: `grid-cols-3 sm:grid-cols-5` (was `grid-cols-5`)
+- Equipment grid: `grid-cols-2 sm:grid-cols-2 lg:grid-cols-4` (was `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`)
+- Submit area: Sticky at bottom on mobile with `sticky bottom-0 md:static bg-background/80 md:bg-transparent backdrop-blur-xl` and border
+- Card headings: `text-sm sm:text-base`
+
+### 7. Admin Panel — Mobile cards
+- Section padding: `py-6 sm:py-8`
+- Heading: `text-xl sm:text-3xl`
+- Stats cards: `rounded-2xl sm:rounded-3xl p-4 sm:p-5`, icons `w-9 h-9 sm:w-10 sm:h-10`, values `text-xl sm:text-2xl`
+- Type breakdown cards: `rounded-2xl sm:rounded-3xl p-4 sm:p-5`, values `text-lg sm:text-xl`
+- Pending cards: `rounded-2xl sm:rounded-3xl p-4 sm:p-6`, thumbnail `h-24 sm:h-32`
+- Approved table: Smaller padding `p-3 sm:p-4`, text `text-xs sm:text-sm`
+- Headings: `text-sm sm:text-base`
+
+### 8. Footer — Hidden on mobile
+- Added `hidden md:block` to footer since bottom nav serves same purpose on mobile
+
+### 9. Detail View — Mobile optimizations (PlaygroundDetail.tsx)
+- Back button header: `py-3 sm:py-4` (compact on mobile)
+- Gallery: Mobile shows single hero image (`sm:hidden h-56`) with badge overlay and photo count; desktop keeps bento grid (`hidden sm:grid`)
+- Primary info heading: `text-2xl sm:text-3xl md:text-4xl`
+- Action buttons: Reordered — "Поддержать" (Support) primary button first, then "Нравится" (Like) and Share; all `size-sm` on mobile, `sm:size-lg` on desktop
+- Section gaps: `mt-6 sm:mt-10` (was `mt-10`)
+- All card padding: `p-4 sm:p-6`
+- Card headings: `text-base sm:text-lg`
+- Reviews section: `mt-8 sm:mt-12`, heading `text-xl sm:text-2xl`
+- MiniMap: `h-[200px] sm:h-[280px]` (was fixed 280px)
+- Review cards: `p-4 sm:p-6`
+
+Stage Summary:
+- All 9 mobile UX improvements applied successfully
+- Desktop (md:) layouts unchanged — only mobile (< md breakpoint) improved
+- ESLint passes with no errors
+- Dev server compiles successfully with no errors

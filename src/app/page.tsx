@@ -532,8 +532,7 @@ function MapComponent({
   return (
     <div
       ref={mapRef}
-      className="w-full rounded-3xl overflow-hidden"
-      style={{ height: height || "500px" }}
+      className="w-full rounded-3xl overflow-hidden h-[300px] sm:h-[500px]"
     />
   );
 }
@@ -793,7 +792,7 @@ function PhotoUploader({
 
       {/* Preview grid */}
       {photos.length > 0 && (
-        <div className="grid grid-cols-5 gap-3 mt-4">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 mt-4">
           {photos.map((photo, i) => (
             <div key={i} className="relative aspect-square rounded-2xl overflow-hidden group border border-border/30">
               <img src={photo} alt={`Фото ${i + 1}`} className="w-full h-full object-cover" />
@@ -1252,12 +1251,12 @@ export default function HomePage() {
       {/* ==================== NAVIGATION (Desktop) ==================== */}
       <nav className={`fixed top-0 left-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 transition-transform duration-300 ${activeTab === "detail" ? "-translate-y-full" : ""}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex justify-between items-center h-14 md:h-16">
             <button onClick={() => setActiveTab("home")} className="flex items-center gap-2 group">
               <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
                 <TreePine className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-xl tracking-tight text-foreground group-hover:text-primary transition-colors">
+              <span className="font-bold text-lg md:text-xl tracking-tight text-foreground group-hover:text-primary transition-colors">
                 ПЛОЩАДКА
               </span>
             </button>
@@ -1279,28 +1278,60 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Mobile: only logo visible, no hamburger */}
-            <div className="md:hidden" />
+            {/* Mobile: search button */}
+            <button
+              className="md:hidden w-10 h-10 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+              onClick={() => setActiveTab("registry")}
+              aria-label="Поиск площадок"
+            >
+              <Search className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </nav>
 
       {/* ==================== BOTTOM NAVIGATION (Mobile) ==================== */}
       {activeTab !== "detail" && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/90 backdrop-blur-xl border-t border-border/30 pb-[env(safe-area-inset-bottom)]">
-          <div className="flex items-center justify-around h-16">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.08)] border-t border-border/20 pb-[env(safe-area-inset-bottom)]">
+          <div className="flex items-end justify-around h-16 relative">
             {bottomNavItems.map((item) => {
               const isActive = activeTab === item.id;
+              const isAddButton = item.id === "add";
+
+              if (isAddButton) {
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className="flex flex-col items-center justify-center -mt-5 relative z-10"
+                  >
+                    <div className={`w-12 h-12 rounded-full shadow-lg shadow-primary/30 flex items-center justify-center transition-all duration-200 ${
+                      isActive
+                        ? "bg-primary text-primary-foreground scale-110"
+                        : "bg-primary/90 text-primary-foreground hover:bg-primary"
+                    }`}>
+                      <item.Icon className="w-6 h-6" strokeWidth={2.5} />
+                    </div>
+                  </button>
+                );
+              }
+
               return (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full transition-colors duration-200 ${
+                  className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full min-w-[44px] min-h-[44px] transition-colors duration-200 ${
                     isActive ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
-                  <item.Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? "scale-110" : ""}`} strokeWidth={isActive ? 2.5 : 2} />
-                  <span className={`text-[10px] font-medium leading-tight ${isActive ? "font-semibold" : ""}`}>{item.label}</span>
+                  <item.Icon
+                    className={`w-5 h-5 transition-all duration-200 ${isActive ? "scale-110" : ""}`}
+                    strokeWidth={isActive ? 2.5 : 1.8}
+                  />
+                  <span className={`text-[10px] leading-tight ${isActive ? "font-bold" : "font-medium"}`}>{item.label}</span>
+                  {isActive && (
+                    <div className="w-1 h-1 rounded-full bg-primary mt-0.5" />
+                  )}
                 </button>
               );
             })}
@@ -1309,7 +1340,7 @@ export default function HomePage() {
       )}
 
       {/* ==================== MAIN CONTENT ==================== */}
-      <main className={`flex-1 ${activeTab === "detail" ? "pt-0" : "pt-16 pb-20 md:pb-0"}`}>
+      <main className={`flex-1 ${activeTab === "detail" ? "pt-0" : "pt-14 md:pt-16 pb-20 md:pb-0"}`}>
         {/* ==================== DETAIL PAGE ==================== */}
         {activeTab === "detail" && detailPlayground && (
           <PlaygroundDetail
@@ -1326,49 +1357,49 @@ export default function HomePage() {
             <motion.div key="home" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }}>
               {/* Hero Section */}
               <section className="relative overflow-hidden bg-gradient-to-b from-pistachio-bg via-background to-background">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
-                  <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-20">
+                  <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
                     <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1, duration: 0.5 }}>
-                      <Badge className="mb-6 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 px-4 py-1.5 text-sm">
+                      <Badge className="mb-4 sm:mb-6 bg-primary/10 text-primary border-primary/20 hover:bg-primary/15 px-3 sm:px-4 py-1 sm:py-1.5 text-xs sm:text-sm">
                         <TreePine className="w-3.5 h-3.5 mr-1.5" />
                         Природа в центре игры
                       </Badge>
-                      <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground mb-6 leading-[1.1]">
+                      <h1 className="text-2xl sm:text-4xl lg:text-6xl font-bold tracking-tight text-foreground mb-4 sm:mb-6 leading-[1.1]">
                         Гармония<span className="text-primary"> детства</span> в ритме<span className="text-primary"> природы</span>
                       </h1>
-                      <p className="text-lg text-muted-foreground mb-8 max-w-lg leading-relaxed">
+                      <p className="text-sm sm:text-lg text-muted-foreground mb-6 sm:mb-8 max-w-lg leading-relaxed">
                         Находите лучшие детские и спортивные площадки Приднестровья. Интерактивная карта, рейтинги и актуальная информация.
                       </p>
-                      <div className="flex flex-wrap gap-4">
-                        <Button size="lg" className="rounded-full px-8 text-base shadow-lg shadow-primary/20" onClick={() => setActiveTab("registry")}>
+                      <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+                        <Button size="lg" className="rounded-full px-6 sm:px-8 text-sm sm:text-base shadow-lg shadow-primary/20 w-full sm:w-auto" onClick={() => setActiveTab("registry")}>
                           <Navigation className="w-4 h-4 mr-2" />Начать поиск
                         </Button>
-                        <Button variant="outline" size="lg" className="rounded-full px-8 text-base" onClick={() => setActiveTab("add")}>
+                        <Button variant="outline" size="lg" className="rounded-full px-6 sm:px-8 text-sm sm:text-base w-full sm:w-auto" onClick={() => setActiveTab("add")}>
                           <Plus className="w-4 h-4 mr-2" />Добавить площадку
                         </Button>
                       </div>
                     </motion.div>
 
-                    <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, duration: 0.5 }} className="grid grid-cols-2 gap-4">
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 hover:shadow-md transition-shadow">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4"><MapPin className="w-6 h-6 text-primary" /></div>
-                        <p className="text-3xl font-bold text-foreground">{stats?.approved || 0}+</p>
-                        <p className="text-sm text-muted-foreground mt-1">Площадок на карте</p>
+                    <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, duration: 0.5 }} className="flex lg:grid lg:grid-cols-2 gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x lg:mx-0 lg:px-0 lg:pb-0 lg:overflow-visible">
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-2 sm:mb-4"><MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /></div>
+                        <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats?.approved || 0}+</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Площадок</p>
                       </div>
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 hover:shadow-md transition-shadow">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mb-4"><Users className="w-6 h-6 text-amber-600" /></div>
-                        <p className="text-3xl font-bold text-foreground">{stats?.kids || 0}</p>
-                        <p className="text-sm text-muted-foreground mt-1">Детских зон</p>
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 flex items-center justify-center mb-2 sm:mb-4"><Users className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" /></div>
+                        <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats?.kids || 0}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Детских зон</p>
                       </div>
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 hover:shadow-md transition-shadow">
-                        <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-4"><Dumbbell className="w-6 h-6 text-blue-600" /></div>
-                        <p className="text-3xl font-bold text-foreground">{stats?.sports || 0}</p>
-                        <p className="text-sm text-muted-foreground mt-1">Спортивных зон</p>
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 flex items-center justify-center mb-2 sm:mb-4"><Dumbbell className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" /></div>
+                        <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats?.sports || 0}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Спортивных</p>
                       </div>
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 hover:shadow-md transition-shadow">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-4"><CheckCircle2 className="w-6 h-6 text-emerald-600" /></div>
-                        <p className="text-3xl font-bold text-foreground">{getAllSettlements().length}</p>
-                        <p className="text-sm text-muted-foreground mt-1">Населённых пунктов</p>
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 flex items-center justify-center mb-2 sm:mb-4"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" /></div>
+                        <p className="text-2xl sm:text-3xl font-bold text-foreground">{getAllSettlements().length}</p>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Нас. пунктов</p>
                       </div>
                     </motion.div>
                   </div>
@@ -1378,13 +1409,17 @@ export default function HomePage() {
               </section>
 
               {/* Map Section */}
-              <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+              <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
                   <div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Интерактивная карта</h2>
-                    <p className="text-muted-foreground mt-1">Нажмите на маркер, чтобы узнать подробности</p>
+                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Интерактивная карта</h2>
+                    <p className="text-sm sm:text-base text-muted-foreground mt-1">Нажмите на маркер, чтобы узнать подробности</p>
                   </div>
-                  <Button variant="outline" className="rounded-full" onClick={() => setShowFilters(!showFilters)}>
+                  <Button variant="outline" size="sm" className="rounded-full sm:hidden" onClick={() => setShowFilters(!showFilters)}>
+                    <Filter className="w-4 h-4 mr-1.5" />Фильтры
+                    <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showFilters ? "rotate-180" : ""}`} />
+                  </Button>
+                  <Button variant="outline" className="rounded-full hidden sm:inline-flex" onClick={() => setShowFilters(!showFilters)}>
                     <Filter className="w-4 h-4 mr-2" />Фильтры
                     <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showFilters ? "rotate-180" : ""}`} />
                   </Button>
@@ -1435,17 +1470,17 @@ export default function HomePage() {
                   )}
                 </AnimatePresence>
 
-                <div className="rounded-3xl overflow-hidden border border-border/30 shadow-lg">
-                  <MapComponent playgrounds={filteredPlaygrounds} selectedId={selectedPlayground} onSelect={(id) => { setSelectedPlayground(id); const p = playgrounds.find((pg) => pg.id === id); if (p) { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); } }} height="500px" />
+                <div className="rounded-2xl sm:rounded-3xl overflow-hidden border border-border/30 shadow-lg">
+                  <MapComponent playgrounds={filteredPlaygrounds} selectedId={selectedPlayground} onSelect={(id) => { setSelectedPlayground(id); const p = playgrounds.find((pg) => pg.id === id); if (p) { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); } }} />
                 </div>
 
                 {/* Quick cards */}
-                <div className="mt-8">
-                  <h3 className="text-xl font-semibold text-foreground mb-4">Рядом с вами</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="mt-6 sm:mt-8">
+                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-3 sm:mb-4">Рядом с вами</h3>
+                  <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x sm:mx-0 sm:px-0 sm:pb-0 sm:overflow-visible">
                     {filteredPlaygrounds.slice(0, 6).map((p, i) => (
                       <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                        className="bg-white rounded-3xl p-5 border border-border/30 shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); }}>
+                        className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 shadow-sm hover:shadow-md transition-all cursor-pointer group min-w-[260px] sm:min-w-0 snap-start" onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); }}>
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center gap-2">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${p.type === "kids" ? "bg-pink-50 text-pink-600" : p.type === "sports" ? "bg-blue-50 text-blue-600" : "bg-primary/10 text-primary"}`}>
@@ -1468,12 +1503,12 @@ export default function HomePage() {
 
               {/* Mission */}
               <section className="bg-pistachio-bg/50 border-y border-border/20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-                  <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-20">
+                  <div className="grid lg:grid-cols-2 gap-8 sm:gap-12 items-center">
                     <div>
-                      <Badge className="mb-4 bg-primary/10 text-primary border-primary/20"><Heart className="w-3 h-3 mr-1" />О проекте</Badge>
-                      <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6">Дизайн, вдохновленный жизнью</h2>
-                      <p className="text-muted-foreground text-lg leading-relaxed mb-8">Проект «ПЛОЩАДКА» — это не просто список адресов. Это сообщество, которое верит в важность качественных и безопасных пространств для детей и спортсменов Приднестровья.</p>
+                      <Badge className="mb-3 sm:mb-4 bg-primary/10 text-primary border-primary/20"><Heart className="w-3 h-3 mr-1" />О проекте</Badge>
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4 sm:mb-6">Дизайн, вдохновленный жизнью</h2>
+                      <p className="text-muted-foreground text-sm sm:text-lg leading-relaxed mb-6 sm:mb-8">Проект «ПЛОЩАДКА» — это не просто список адресов. Это сообщество, которое верит в важность качественных и безопасных пространств для детей и спортсменов Приднестровья.</p>
                       <div className="space-y-4">
                         {["Автоматический рейтинг на основе состояния и оборудования", "Открытые данные о каждой площадке с фотоотчётом", "Все города и сёла Приднестровья на карте"].map((item, i) => (
                           <div key={i} className="flex items-center gap-3">
@@ -1483,23 +1518,23 @@ export default function HomePage() {
                         ))}
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 text-center"><TreePine className="w-8 h-8 text-primary mx-auto mb-3" /><p className="text-2xl font-bold text-foreground">{stats?.approved || 0}</p><p className="text-xs text-muted-foreground mt-1">Площадок</p></div>
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 text-center mt-8"><MapPin className="w-8 h-8 text-primary mx-auto mb-3" /><p className="text-2xl font-bold text-foreground">{getAllSettlements().length}</p><p className="text-xs text-muted-foreground mt-1">Населённых пунктов</p></div>
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 text-center"><Users className="w-8 h-8 text-primary mx-auto mb-3" /><p className="text-2xl font-bold text-foreground">1.2k</p><p className="text-xs text-muted-foreground mt-1">Пользователей</p></div>
-                      <div className="bg-white rounded-3xl p-6 shadow-sm border border-border/30 text-center mt-8"><Sun className="w-8 h-8 text-primary mx-auto mb-3" /><p className="text-2xl font-bold text-foreground">100%</p><p className="text-xs text-muted-foreground mt-1">Бесплатно</p></div>
+                    <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center"><TreePine className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">{stats?.approved || 0}</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Площадок</p></div>
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center sm:mt-8"><MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">{getAllSettlements().length}</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Нас. пунктов</p></div>
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center"><Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">1.2k</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Пользователей</p></div>
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center sm:mt-8"><Sun className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">100%</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Бесплатно</p></div>
                     </div>
                   </div>
                 </div>
               </section>
 
               {/* CTA */}
-              <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-                <div className="bg-primary rounded-3xl p-8 sm:p-12 lg:p-16 text-center relative overflow-hidden">
+              <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-20">
+                <div className="bg-primary rounded-2xl sm:rounded-3xl p-6 sm:p-12 lg:p-16 text-center relative overflow-hidden">
                   <div className="relative z-10">
-                    <h2 className="text-3xl sm:text-4xl font-bold text-primary-foreground mb-4">Знаете отличную площадку?</h2>
-                    <p className="text-lg text-primary-foreground/80 mb-8 max-w-xl mx-auto">Помогите сообществу — добавьте площадку на карту. После проверки она появится в реестре.</p>
-                    <Button size="lg" className="rounded-full bg-white text-primary hover:bg-white/90 shadow-xl px-8 text-base" onClick={() => setActiveTab("add")}><Plus className="w-4 h-4 mr-2" />Добавить площадку</Button>
+                    <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-primary-foreground mb-3 sm:mb-4">Знаете отличную площадку?</h2>
+                    <p className="text-sm sm:text-lg text-primary-foreground/80 mb-6 sm:mb-8 max-w-xl mx-auto">Помогите сообществу — добавьте площадку на карту. После проверки она появится в реестре.</p>
+                    <Button size="lg" className="rounded-full bg-white text-primary hover:bg-white/90 shadow-xl px-6 sm:px-8 text-sm sm:text-base w-full sm:w-auto" onClick={() => setActiveTab("add")}><Plus className="w-4 h-4 mr-2" />Добавить площадку</Button>
                   </div>
                   <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-white/10 blur-3xl pointer-events-none" />
                   <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-white/5 blur-3xl pointer-events-none" />
@@ -1510,11 +1545,11 @@ export default function HomePage() {
 
           {/* ==================== REGISTRY TAB ==================== */}
           {activeTab === "registry" && (
-            <motion.div key="registry" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <motion.div key="registry" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
                 <div>
-                  <h2 className="text-3xl font-bold text-foreground">Реестр площадок</h2>
-                  <p className="text-muted-foreground mt-1">Все проверенные площадки Приднестровья — {filteredPlaygrounds.length} объектов</p>
+                  <h2 className="text-xl sm:text-3xl font-bold text-foreground">Реестр площадок</h2>
+                  <p className="text-sm sm:text-base text-muted-foreground mt-1">{filteredPlaygrounds.length} объектов</p>
                 </div>
                 <Button variant="outline" size="sm" className="rounded-full" onClick={() => setShowFilters(!showFilters)}>
                   <Filter className="w-3.5 h-3.5 mr-1.5" />Фильтры
@@ -1524,7 +1559,7 @@ export default function HomePage() {
               <AnimatePresence>
                 {showFilters && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-6 overflow-hidden">
-                    <div className="bg-white rounded-3xl p-5 border border-border/30 shadow-sm flex flex-wrap gap-3">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 shadow-sm flex flex-wrap gap-3">
                       <div className="flex-1 min-w-[180px]">
                         <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Поиск..." className="pl-9 rounded-xl" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
                       </div>
@@ -1557,16 +1592,16 @@ export default function HomePage() {
               ) : filteredPlaygrounds.length === 0 ? (
                 <div className="text-center py-20"><MapPin className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" /><h3 className="text-lg font-semibold text-foreground mb-2">Площадки не найдены</h3><p className="text-muted-foreground">Попробуйте изменить параметры фильтра</p></div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6">
                   {filteredPlaygrounds.map((p, i) => {
                     const isLarge = i === 0;
                     const isWide = i % 5 === 2;
                     const photos = getPhotos(p);
                     return (
                       <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                        className={`group bg-white rounded-3xl overflow-hidden border border-border/30 shadow-sm hover:shadow-lg transition-all cursor-pointer ${isLarge ? "md:col-span-8" : isWide ? "md:col-span-8" : "md:col-span-4"}`}
+                        className={`group bg-white rounded-2xl sm:rounded-3xl overflow-hidden border border-border/30 shadow-sm hover:shadow-lg transition-all cursor-pointer ${isLarge ? "md:col-span-8" : isWide ? "md:col-span-8" : "md:col-span-4"}`}
                         onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); }}>
-                        <div className={`relative ${isLarge ? "h-64" : isWide ? "h-48" : "h-44"} bg-gradient-to-br from-pistachio-bg to-muted overflow-hidden`}>
+                        <div className={`relative ${isLarge ? "h-48 sm:h-64" : isWide ? "h-36 sm:h-48" : "h-36 sm:h-44"} bg-gradient-to-br from-pistachio-bg to-muted overflow-hidden`}>
                           {photos.length > 0 ? (
                             <img src={photos[0]} alt={p.name} className="w-full h-full object-cover" />
                           ) : (
@@ -1583,9 +1618,9 @@ export default function HomePage() {
                             </div>
                           )}
                         </div>
-                        <div className="p-5">
-                          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">{p.name}</h3>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1 mb-3"><MapPin className="w-3.5 h-3.5 shrink-0" /><span className="line-clamp-1">{p.address}, {p.city}</span></p>
+                        <div className="p-4 sm:p-5">
+                          <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">{p.name}</h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1 mb-2 sm:mb-3"><MapPin className="w-3 h-3 shrink-0" /><span className="line-clamp-1">{p.address}, {p.city}</span></p>
                           <RatingBar rating={p.rating} size="sm" />
                           {getEquipment(p).length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-3">
@@ -1604,18 +1639,18 @@ export default function HomePage() {
 
           {/* ==================== ADD PLAYGROUND TAB ==================== */}
           {activeTab === "add" && (
-            <motion.div key="add" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <motion.div key="add" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
               {!submitted ? (
                 <>
-                  <div className="mb-10">
+                  <div className="mb-6 sm:mb-10">
                     {editingPlayground !== null ? (
                       <>
-                        <h2 className="text-3xl font-bold text-foreground mb-2">Редактирование площадки</h2>
+                        <h2 className="text-xl sm:text-3xl font-bold text-foreground mb-2">Редактирование площадки</h2>
                         <p className="text-primary font-medium">{editingPlayground.name}</p>
                       </>
                     ) : (
                       <>
-                        <h2 className="text-3xl font-bold text-foreground mb-2">Добавить новую площадку</h2>
+                        <h2 className="text-xl sm:text-3xl font-bold text-foreground mb-2">Добавить новую площадку</h2>
                         <p className="text-muted-foreground">Помогите сообществу найти лучшие места для игр, заполнив форму ниже.</p>
                       </>
                     )}
@@ -1625,18 +1660,18 @@ export default function HomePage() {
                     {/* Left column: Photo Upload + Location */}
                     <div className="md:col-span-7 flex flex-col gap-6">
                       {/* Photo Upload */}
-                      <div className="bg-white rounded-3xl p-6 border border-border/30 shadow-sm">
-                        <div className="flex items-center gap-2 mb-5">
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border/30 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4 sm:mb-5">
                           <Camera className="w-5 h-5 text-primary" />
-                          <h3 className="font-semibold text-foreground">Загрузите фото</h3>
+                          <h3 className="font-semibold text-sm sm:text-base text-foreground">Загрузите фото</h3>
                           <Badge variant="secondary" className="ml-auto text-xs">{formPhotos.length}/{MAX_PHOTOS}</Badge>
                         </div>
                         <PhotoUploader photos={formPhotos} onChange={setFormPhotos} />
                       </div>
 
                       {/* Location */}
-                      <div className="bg-white rounded-3xl p-6 border border-border/30 shadow-sm">
-                        <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border/30 shadow-sm">
+                        <h3 className="font-semibold text-sm sm:text-base text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-primary" />Местоположение
                         </h3>
                         <div className="space-y-3">
@@ -1688,7 +1723,7 @@ export default function HomePage() {
                     {/* Right column: Info + Rating */}
                     <div className="md:col-span-5 flex flex-col gap-6">
                       {/* Basic Info */}
-                      <div className="bg-white rounded-3xl p-6 border border-border/30 shadow-sm space-y-4">
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border/30 shadow-sm space-y-4">
                         <div>
                           <Label className="text-sm font-medium mb-1.5">Название площадки *</Label>
                           <Input placeholder="Напр. Парк Горького — Южная" className="rounded-xl" value={formName} onChange={(e) => setFormName(e.target.value)} required />
@@ -1731,17 +1766,17 @@ export default function HomePage() {
                     </div>
 
                     {/* Description */}
-                    <div className="md:col-span-12 bg-white rounded-3xl p-6 border border-border/30 shadow-sm">
-                      <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2"><Info className="w-4 h-4 text-primary" />Описание</h3>
+                    <div className="md:col-span-12 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border/30 shadow-sm">
+                      <h3 className="font-semibold text-sm sm:text-base text-foreground mb-3 sm:mb-4 flex items-center gap-2"><Info className="w-4 h-4 text-primary" />Описание</h3>
                       <Textarea placeholder="Расскажите об этой площадке: что есть, для кого подходит, в каком состоянии..." className="rounded-xl min-h-[100px]" value={formDescription} onChange={(e) => setFormDescription(e.target.value)} />
                     </div>
 
                     {/* Equipment */}
-                    <div className="md:col-span-12 bg-white rounded-3xl p-6 border border-border/30 shadow-sm">
-                      <h3 className="font-semibold text-foreground mb-6 flex items-center gap-2">
+                    <div className="md:col-span-12 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border/30 shadow-sm">
+                      <h3 className="font-semibold text-sm sm:text-base text-foreground mb-4 sm:mb-6 flex items-center gap-2">
                         <Dumbbell className="w-4 h-4 text-primary" />Оборудование и особенности
                       </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                         {Object.entries(EQUIPMENT_OPTIONS).map(([key, category]) => (
                           <div key={key}>
                             <h4 className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">{category.label}</h4>
@@ -1762,8 +1797,8 @@ export default function HomePage() {
                     </div>
 
                     {/* Submitter info */}
-                    <div className="md:col-span-12 bg-white rounded-3xl p-6 border border-border/30 shadow-sm">
-                      <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2"><Phone className="w-4 h-4 text-primary" />Контактная информация (необязательно)</h3>
+                    <div className="md:col-span-12 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-border/30 shadow-sm">
+                      <h3 className="font-semibold text-sm sm:text-base text-foreground mb-3 sm:mb-4 flex items-center gap-2"><Phone className="w-4 h-4 text-primary" />Контактная информация (необязательно)</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div><Label className="text-sm font-medium mb-1.5">Ваше имя</Label><Input placeholder="Иван Иванов" className="rounded-xl" value={formSubmitterName} onChange={(e) => setFormSubmitterName(e.target.value)} /></div>
                         <div><Label className="text-sm font-medium mb-1.5">Email</Label><Input type="email" placeholder="ivan@example.com" className="rounded-xl" value={formSubmitterEmail} onChange={(e) => setFormSubmitterEmail(e.target.value)} /></div>
@@ -1771,7 +1806,7 @@ export default function HomePage() {
                     </div>
 
                     {/* Submit */}
-                    <div className="md:col-span-12 flex justify-end items-center gap-4 mt-2">
+                    <div className="md:col-span-12 sticky bottom-16 md:bottom-0 md:static bg-background/80 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none py-4 md:py-0 -mx-4 md:mx-0 px-4 md:px-0 border-t md:border-t-0 border-border/20 md:border-transparent flex justify-end items-center gap-3 sm:gap-4 mt-2">
                       {editingPlayground !== null ? (
                         <>
                           <Button type="button" variant="ghost" onClick={handleCancelEdit}>Отмена</Button>
@@ -1821,7 +1856,7 @@ export default function HomePage() {
 
           {/* ==================== ADMIN TAB ==================== */}
           {activeTab === "admin" && (
-            <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <motion.div key="admin" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
               {!isAdmin ? (
                 <div className="max-w-md mx-auto text-center py-20">
                   <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto mb-6"><Shield className="w-10 h-10 text-primary" /></div>
@@ -1835,9 +1870,9 @@ export default function HomePage() {
                 </div>
               ) : (
                 <>
-                  <div className="mb-8">
-                    <div className="flex justify-between items-center mb-6">
-                      <div><h2 className="text-3xl font-bold text-foreground">Панель администратора</h2><p className="text-muted-foreground mt-1">Модерация и статистика</p></div>
+                  <div className="mb-6 sm:mb-8">
+                    <div className="flex justify-between items-center mb-4 sm:mb-6">
+                      <div><h2 className="text-xl sm:text-3xl font-bold text-foreground">Панель администратора</h2><p className="text-sm sm:text-base text-muted-foreground mt-1">Модерация и статистика</p></div>
                       <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setIsAdmin(false); setAdminPassword(""); }}><X className="w-3.5 h-3.5 mr-1.5" />Выйти</Button>
                     </div>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -1847,36 +1882,36 @@ export default function HomePage() {
                         { label: "В очереди", value: stats?.pending || 0, icon: <Clock className="w-5 h-5" />, color: "bg-amber-50 text-amber-600" },
                         { label: "Отклонено", value: stats?.rejected || 0, icon: <XCircle className="w-5 h-5" />, color: "bg-red-50 text-red-600" },
                       ].map((stat, i) => (
-                        <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-3xl p-5 border border-border/30 shadow-sm">
-                          <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center mb-3`}>{stat.icon}</div>
-                          <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                        <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 shadow-sm">
+                          <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl ${stat.color} flex items-center justify-center mb-2 sm:mb-3`}>{stat.icon}</div>
+                          <p className="text-xl sm:text-2xl font-bold text-foreground">{stat.value}</p>
+                          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">{stat.label}</p>
                         </motion.div>
                       ))}
                     </div>
                   </div>
 
                   {/* Type breakdown */}
-                  <div className="mb-8">
-                    <div className="flex items-center gap-2 mb-4"><BarChart3 className="w-5 h-5 text-primary" /><h3 className="font-semibold text-foreground">Распределение по типам</h3></div>
+                  <div className="mb-6 sm:mb-8">
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4"><BarChart3 className="w-5 h-5 text-primary" /><h3 className="font-semibold text-sm sm:text-base text-foreground">Распределение по типам</h3></div>
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="bg-white rounded-3xl p-5 border border-border/30 text-center"><Baby className="w-6 h-6 text-pink-500 mx-auto mb-2" /><p className="text-xl font-bold">{stats?.kids || 0}</p><p className="text-xs text-muted-foreground">Детские</p></div>
-                      <div className="bg-white rounded-3xl p-5 border border-border/30 text-center"><Dumbbell className="w-6 h-6 text-blue-500 mx-auto mb-2" /><p className="text-xl font-bold">{stats?.sports || 0}</p><p className="text-xs text-muted-foreground">Спортивные</p></div>
-                      <div className="bg-white rounded-3xl p-5 border border-border/30 text-center"><TreePine className="w-6 h-6 text-primary mx-auto mb-2" /><p className="text-xl font-bold">{stats?.both || 0}</p><p className="text-xs text-muted-foreground">Комбинированные</p></div>
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 text-center"><Baby className="w-6 h-6 text-pink-500 mx-auto mb-2" /><p className="text-lg sm:text-xl font-bold">{stats?.kids || 0}</p><p className="text-[11px] sm:text-xs text-muted-foreground">Детские</p></div>
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 text-center"><Dumbbell className="w-6 h-6 text-blue-500 mx-auto mb-2" /><p className="text-lg sm:text-xl font-bold">{stats?.sports || 0}</p><p className="text-[11px] sm:text-xs text-muted-foreground">Спортивные</p></div>
+                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 text-center"><TreePine className="w-6 h-6 text-primary mx-auto mb-2" /><p className="text-lg sm:text-xl font-bold">{stats?.both || 0}</p><p className="text-[11px] sm:text-xs text-muted-foreground">Комбинированные</p></div>
                     </div>
                   </div>
 
                   {/* Pending */}
                   <div>
-                    <div className="flex items-center gap-2 mb-4"><Clock className="w-5 h-5 text-amber-500" /><h3 className="font-semibold text-foreground">Новые заявки ({pendingPlaygrounds.length})</h3></div>
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4"><Clock className="w-5 h-5 text-amber-500" /><h3 className="font-semibold text-sm sm:text-base text-foreground">Новые заявки ({pendingPlaygrounds.length})</h3></div>
                     {pendingPlaygrounds.length === 0 ? (
-                      <div className="text-center py-16 bg-white rounded-3xl border border-border/30"><CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-4" /><h4 className="text-lg font-semibold text-foreground mb-2">Всё чисто!</h4><p className="text-muted-foreground">Нет заявок, ожидающих модерации</p></div>
+                      <div className="text-center py-12 sm:py-16 bg-white rounded-2xl sm:rounded-3xl border border-border/30"><CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 text-emerald-400 mx-auto mb-4" /><h4 className="text-base sm:text-lg font-semibold text-foreground mb-2">Всё чисто!</h4><p className="text-sm text-muted-foreground">Нет заявок, ожидающих модерации</p></div>
                     ) : (
                       <div className="space-y-4">
                         {pendingPlaygrounds.map((p, i) => (
-                          <motion.div key={p.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-3xl p-6 border border-amber-200/50 shadow-sm">
+                          <motion.div key={p.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-amber-200/50 shadow-sm">
                             <div className="flex flex-col sm:flex-row gap-6">
-                              <div className="w-full sm:w-40 h-32 bg-gradient-to-br from-amber-50 to-pistachio-bg rounded-2xl flex items-center justify-center shrink-0 overflow-hidden">
+                              <div className="w-full sm:w-40 h-24 sm:h-32 bg-gradient-to-br from-amber-50 to-pistachio-bg rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 overflow-hidden">
                                 {getPhotos(p).length > 0 ? <img src={getPhotos(p)[0]} alt={p.name} className="w-full h-full object-cover" /> :
                                   p.type === "kids" ? <Baby className="w-10 h-10 text-pink-400" /> : p.type === "sports" ? <Dumbbell className="w-10 h-10 text-blue-400" /> : <TreePine className="w-10 h-10 text-primary" />
                                 }
@@ -1903,9 +1938,9 @@ export default function HomePage() {
                   </div>
 
                   {/* All approved table */}
-                  <div className="mt-12">
-                    <div className="flex items-center gap-2 mb-4"><List className="w-5 h-5 text-primary" /><h3 className="font-semibold text-foreground">Все одобренные площадки ({playgrounds.length})</h3></div>
-                    <div className="bg-white rounded-3xl border border-border/30 overflow-hidden">
+                  <div className="mt-8 sm:mt-12">
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4"><List className="w-5 h-5 text-primary" /><h3 className="font-semibold text-sm sm:text-base text-foreground">Все одобренные площадки ({playgrounds.length})</h3></div>
+                    <div className="bg-white rounded-2xl sm:rounded-3xl border border-border/30 overflow-hidden">
                       <div className="max-h-96 overflow-y-auto">
                         <table className="w-full">
                           <thead className="bg-muted/50 sticky top-0">
@@ -1920,11 +1955,11 @@ export default function HomePage() {
                           <tbody>
                             {playgrounds.map((p) => (
                               <tr key={p.id} className="border-t border-border/20 hover:bg-muted/30 transition-colors">
-                                <td className="p-4"><p className="font-medium text-sm text-foreground">{p.name}</p><p className="text-xs text-muted-foreground">{p.address}</p></td>
-                                <td className="p-4 text-sm text-muted-foreground hidden sm:table-cell">{p.city}</td>
-                                <td className="p-4 hidden md:table-cell"><span className={`text-sm font-bold ${getRatingLabel(p.rating).color}`}>{(p.rating/20).toFixed(1)} ★</span></td>
-                                <td className="p-4"><ConditionBadge condition={p.condition} /></td>
-                                <td className="p-4 text-right">
+                                <td className="p-3 sm:p-4"><p className="font-medium text-xs sm:text-sm text-foreground">{p.name}</p><p className="text-[11px] sm:text-xs text-muted-foreground">{p.address}</p></td>
+                                <td className="p-3 sm:p-4 text-xs sm:text-sm text-muted-foreground hidden sm:table-cell">{p.city}</td>
+                                <td className="p-3 sm:p-4 hidden md:table-cell"><span className={`text-xs sm:text-sm font-bold ${getRatingLabel(p.rating).color}`}>{(p.rating/20).toFixed(1)} ★</span></td>
+                                <td className="p-3 sm:p-4"><ConditionBadge condition={p.condition} /></td>
+                                <td className="p-3 sm:p-4 text-right">
                                   <div className="flex items-center justify-end gap-1">
                                     <Button variant="ghost" size="sm" className="text-primary hover:text-primary hover:bg-primary/5" onClick={() => handleEditPlayground(p)}>
                                       <Edit3 className="w-4 h-4" />
@@ -1950,7 +1985,7 @@ export default function HomePage() {
 
       {/* ==================== FOOTER ==================== */}
       {activeTab !== "detail" && (
-        <footer className="bg-muted/30 border-t border-border/20 mt-auto">
+        <footer className="hidden md:block bg-muted/30 border-t border-border/20 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
             <div className="flex items-center gap-2">

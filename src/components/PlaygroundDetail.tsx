@@ -240,8 +240,7 @@ function MiniMap({ lat, lng, address }: { lat: number; lng: number; address: str
     <div>
       <div
         ref={mapRef}
-        className="w-full rounded-lg overflow-hidden"
-        style={{ height: "280px" }}
+        className="w-full rounded-lg overflow-hidden h-[200px] sm:h-[280px]"
       />
       <p className="text-sm text-muted-foreground mt-3 flex items-start gap-1.5">
         <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
@@ -441,7 +440,7 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl py-4 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-border/20"
+          className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl py-3 sm:py-4 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 border-b border-border/20 md:border-b md:border-border/20 border-b-0 md:border-b"
         >
           <div className="flex items-center justify-between">
             <Button
@@ -471,9 +470,38 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="mt-6"
+          className="mt-4 sm:mt-6"
         >
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 h-auto sm:h-[500px]">
+          {/* Mobile: single hero image */}
+          <div className="sm:hidden relative rounded-xl overflow-hidden h-56">
+            <img
+              src={displayPhotos[0]}
+              alt={playground.name}
+              className="w-full h-full object-cover"
+            />
+            {/* Badges overlay */}
+            <div className="absolute top-3 left-3 flex gap-1.5 z-10">
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-white/80 backdrop-blur border border-white/20 ${conditionInfo.color}`}
+              >
+                {conditionInfo.label}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium bg-white/80 backdrop-blur border border-white/20 text-foreground">
+                {TYPE_ICONS[playground.type] || TYPE_ICONS.kids}
+                {typeInfo.label}
+              </span>
+            </div>
+            {/* Gradient overlay at bottom */}
+            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/30 to-transparent" />
+            {photos.length > 1 && (
+              <div className="absolute bottom-3 right-3 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded-full text-[10px] font-medium">
+                +{photos.length - 1} фото
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: bento grid */}
+          <div className="hidden sm:grid grid-cols-1 sm:grid-cols-12 gap-3 h-auto sm:h-[500px]">
             {/* Main large photo - 8 cols */}
             <div className="sm:col-span-8 relative rounded-lg overflow-hidden group h-64 sm:h-full">
               <img
@@ -533,7 +561,7 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.25 }}
-          className="mt-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4"
+          className="mt-6 sm:mt-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4"
         >
           <div className="flex-1 min-w-0">
             {/* District/city label */}
@@ -554,7 +582,7 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
               </span>
             </div>
             {/* Name */}
-            <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight leading-tight mb-3">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground tracking-tight leading-tight mb-2 sm:mb-3">
               {playground.name}
             </h1>
             {/* Description */}
@@ -566,11 +594,18 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
           </div>
 
           {/* Like & Share buttons */}
-          <div className="flex items-center gap-2 shrink-0 mt-2 sm:mt-6">
+          <div className="flex items-center gap-2 shrink-0 mt-2 sm:mt-6 flex-wrap">
+            <Button
+              size="sm"
+              className="rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 px-4 sm:px-6 sm:size-lg"
+            >
+              <Heart className="w-4 sm:w-5 h-4 sm:h-5 mr-1.5 sm:mr-2" />
+              Поддержать
+            </Button>
             <Button
               variant="outline"
-              size="lg"
-              className={`rounded-full border-border/50 ${
+              size="sm"
+              className={`rounded-full border-border/50 sm:size-lg ${
                 liked
                   ? "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
                   : "hover:bg-primary/5 hover:border-primary/30"
@@ -578,30 +613,19 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
               onClick={() => setLiked(!liked)}
             >
               <Heart
-                className={`w-5 h-5 mr-2 transition-all ${
+                className={`w-4 sm:w-5 h-4 sm:h-5 sm:mr-2 transition-all ${
                   liked ? "fill-red-500 text-red-500 scale-110" : ""
                 }`}
               />
-              {liked ? "Нравится" : "Нравится"}
+              <span className="hidden sm:inline">{liked ? "Нравится" : "Нравится"}</span>
             </Button>
             <Button
               variant="outline"
-              size="lg"
-              className="rounded-full border-border/50 hover:bg-primary/5 hover:border-primary/30"
+              size="sm"
+              className="rounded-full border-border/50 hover:bg-primary/5 hover:border-primary/30 sm:size-lg"
               onClick={handleShare}
             >
-              <Share2 className="w-5 h-5" />
-            </Button>
-          </div>
-
-          {/* Support CTA */}
-          <div className="flex items-center shrink-0 mt-2 sm:mt-6">
-            <Button
-              size="lg"
-              className="rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 px-6"
-            >
-              <Heart className="w-5 h-5 mr-2" />
-              Поддержать
+              <Share2 className="w-4 sm:w-5 h-4 sm:h-5" />
             </Button>
           </div>
         </motion.section>
@@ -611,13 +635,13 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35 }}
-          className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-6"
+          className="mt-6 sm:mt-10 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6"
         >
           {/* ===== Left column (7 cols) ===== */}
           <div className="lg:col-span-7 space-y-6">
             {/* Description Card */}
-            <div className="bg-white rounded-lg p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Описание площадки</h2>
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Описание площадки</h2>
 
               {/* Features row */}
               <div className="flex flex-wrap gap-3 mb-6">
@@ -648,8 +672,8 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
 
             {/* Equipment Card */}
             {equipment.length > 0 && (
-              <div className="bg-white rounded-lg p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
-                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <div className="bg-white rounded-lg p-4 sm:p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
+                <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                   <Wrench className="w-5 h-5 text-primary" />
                   Оборудование
                   <Badge variant="secondary" className="ml-1 rounded-full text-xs">
@@ -684,8 +708,8 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
           {/* ===== Right column (5 cols) ===== */}
           <div className="lg:col-span-5 space-y-6">
             {/* Mini Map Card */}
-            <div className="bg-white rounded-lg p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
                 Расположение
               </h2>
@@ -693,8 +717,8 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
             </div>
 
             {/* Status/Condition Card */}
-            <div className="bg-white rounded-lg p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Состояние</h2>
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4">Состояние</h2>
               <div className="flex items-center gap-3 mb-4">
                 {/* Pulse indicator */}
                 <div className="relative">
@@ -765,8 +789,8 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
             </div>
 
             {/* Info Card */}
-            <div className="bg-white rounded-lg p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <div className="bg-white rounded-lg p-4 sm:p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
+              <h2 className="text-base sm:text-lg font-semibold text-foreground mb-3 sm:mb-4 flex items-center gap-2">
                 <Eye className="w-5 h-5 text-primary" />
                 Информация
               </h2>
@@ -834,10 +858,10 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.45 }}
-          className="mt-12"
+          className="mt-8 sm:mt-12"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-foreground">Отзывы</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Отзывы</h2>
             <Badge variant="secondary" className="rounded-full">
               {MOCK_REVIEWS.length} отзывов
             </Badge>
@@ -850,7 +874,7 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.5 + i * 0.1 }}
-                className="bg-white rounded-lg p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20"
+                className="bg-white rounded-lg p-4 sm:p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20"
               >
                 {/* Header: avatar + name + date */}
                 <div className="flex items-center gap-3 mb-4">
