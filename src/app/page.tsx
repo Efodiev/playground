@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import type L from "leaflet";
+// Yandex Maps API is loaded via script tag — no npm import needed
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin, Search, Plus, Shield, CheckCircle2, XCircle, Clock,
@@ -20,7 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import PlaygroundDetail from "@/components/PlaygroundDetail";
 
 // ==================== TYPES ====================
-type ViewTab = "home" | "registry" | "add" | "admin" | "detail";
+type ViewTab = "home" | "map" | "registry" | "add" | "admin" | "detail";
 
 interface Playground {
   id: string;
@@ -405,7 +405,7 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-// ==================== MAP COMPONENT ====================
+// ==================== MAP COMPONENT (Yandex Maps 2.1) ====================
 function MapComponent({
   playgrounds,
   selectedId,
@@ -424,109 +424,124 @@ function MapComponent({
   height?: string;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const markersRef = useRef<L.LayerGroup | null>(null);
+  const mapInstanceRef = useRef<any>(null);
   const [loaded, setLoaded] = useState(false);
 
+  // Load Yandex Maps script
   useEffect(() => {
-    import("leaflet").then((L) => {
-      if (!mapRef.current || mapInstanceRef.current) return;
+    if (typeof window === "undefined") return;
 
-      const map = L.map(mapRef.current, {
-        center: center || MAP_CENTER,
-        zoom: zoom || MAP_ZOOM,
-        zoomControl: interactive !== false,
-        scrollWheelZoom: interactive !== false,
-        dragging: interactive !== false,
-      });
+    const existingScript = document.querySelector('script[src*="api-maps.yandex.ru"]');
+    if (existingScript) {
+      const checkReady = () => {
+        if ((window as any).ymaps) {
+          (window as any).ymaps.ready().then(() => setLoaded(true));
+        } else {
+          setTimeout(checkReady, 100);
+        }
+      };
+      checkReady();
+      return;
+    }
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
+    const script = document.createElement("script");
+    script.src = "https://api-maps.yandex.ru/2.1/?lang=ru_RU";
+    script.async = true;
+    script.onload = () => {
+      (window as any).ymaps.ready().then(() => setLoaded(true));
+    };
+    document.head.appendChild(script);
+  }, []);
 
-      const markers = L.layerGroup().addTo(map);
-      markersRef.current = markers;
-      mapInstanceRef.current = map;
-      setLoaded(true);
+  // Initialize map
+  useEffect(() => {
+    if (!loaded || !mapRef.current || mapInstanceRef.current) return;
+
+    const ymaps = (window as any).ymaps;
+    const map = new ymaps.Map(mapRef.current, {
+      center: center || MAP_CENTER,
+      zoom: zoom || MAP_ZOOM,
+      controls: interactive !== false ? ["zoomControl", "typeSelector"] : [],
+    }, {
+      restrictMapArea: [[45.5, 27.5], [49.0, 31.0]],
     });
+
+    if (interactive === false) {
+      map.behaviors.disable(["drag", "scrollZoom"]);
+    }
+
+    mapInstanceRef.current = map;
 
     return () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        mapInstanceRef.current.destroy();
         mapInstanceRef.current = null;
-        markersRef.current = null;
       }
     };
-  }, []);
+  }, [loaded]);
 
+  // Update markers
   useEffect(() => {
-    if (!loaded || !markersRef.current) return;
+    if (!loaded || !mapInstanceRef.current) return;
 
-    const updateMarkers = async () => {
-      const L = await import("leaflet");
-      if (!markersRef.current) return;
-      markersRef.current.clearLayers();
+    const ymaps = (window as any).ymaps;
+    const map = mapInstanceRef.current;
 
-      const pistachioIcon = L.divIcon({
-        html: `<svg width="32" height="42" viewBox="0 0 32 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 12 16 26 16 26s16-14 16-26C32 7.163 24.837 0 16 0z" fill="#3d6922"/>
-          <circle cx="16" cy="16" r="8" fill="#93c572"/>
-          <circle cx="16" cy="16" r="4" fill="white"/>
-        </svg>`,
-        className: "custom-marker",
-        iconSize: [32, 42],
-        iconAnchor: [16, 42],
-        popupAnchor: [0, -42],
-      });
+    // Remove old markers
+    map.geoObjects.removeAll();
 
-      const selectedIcon = L.divIcon({
-        html: `<svg width="40" height="52" viewBox="0 0 40 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M20 0C8.954 0 0 8.954 0 20c0 15 20 32 20 32s20-17 20-32C40 8.954 31.046 0 20 0z" fill="#3d6922"/>
-          <circle cx="20" cy="20" r="10" fill="#bdf199"/>
-          <circle cx="20" cy="20" r="5" fill="white"/>
-        </svg>`,
-        className: "custom-marker",
-        iconSize: [40, 52],
-        iconAnchor: [20, 52],
-        popupAnchor: [0, -52],
-      });
-
-      playgrounds.forEach((p) => {
-        const isSelected = p.id === selectedId;
-        const conditionInfo = CONDITION_MAP[p.condition] || CONDITION_MAP.good;
-        const ratingInfo = getRatingLabel(p.rating);
-        const marker = L.marker([p.lat, p.lng], {
-          icon: isSelected ? selectedIcon : pistachioIcon,
-        });
-
-        marker.bindPopup(
-          `<div style="padding:16px;min-width:240px;font-family:Inter,sans-serif;">
-            <h3 style="font-size:15px;font-weight:600;margin:0 0 6px;color:#1a1b1f;">${p.name}</h3>
-            <p style="font-size:13px;color:#73796b;margin:0 0 8px;display:flex;align-items:center;gap:4px;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#73796b" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              ${p.address}, ${p.city}
-            </p>
-            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-              <span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;background:${p.condition === 'excellent' ? '#ecfdf5' : p.condition === 'dangerous' ? '#fef2f2' : p.condition === 'needs_repair' ? '#fffbeb' : '#f0f7ea'};color:${p.condition === 'excellent' ? '#047857' : p.condition === 'dangerous' ? '#b91c1c' : p.condition === 'needs_repair' ? '#b45309' : '#3d6922'};border:1px solid ${p.condition === 'excellent' ? '#a7f3d0' : p.condition === 'dangerous' ? '#fecaca' : p.condition === 'needs_repair' ? '#fde68a' : '#c2c9b8'};">
-                ${conditionInfo.label}
-              </span>
-              <span style="font-size:12px;font-weight:700;color:${ratingInfo.color === 'text-emerald-600' ? '#059669' : ratingInfo.color === 'text-primary' ? '#3d6922' : ratingInfo.color === 'text-amber-600' ? '#d97706' : '#dc2626'};">
-                ${(p.rating/20).toFixed(1)} ★ ${ratingInfo.label}
-              </span>
-            </div>
-          </div>`,
-          { closeButton: false, className: "" }
-        );
-
-        if (onSelect) {
-          marker.on("click", () => onSelect(p.id));
-        }
-
-        markersRef.current!.addLayer(marker);
-      });
+    const createMarkerLayout = (isSelected: boolean) => {
+      const size = isSelected ? 40 : 32;
+      const h = isSelected ? 52 : 42;
+      const circleR = isSelected ? 10 : 8;
+      const innerR = isSelected ? 5 : 4;
+      const cx = size / 2;
+      const cy = isSelected ? 20 : 16;
+      const color = "#3d6922";
+      const circleColor = isSelected ? "#bdf199" : "#93c572";
+      return ymaps.templateLayoutFactory.createClass(
+        `<div style="filter:drop-shadow(0 2px 6px rgba(147,197,114,0.5))">` +
+        `<svg width="${size}" height="${h}" viewBox="0 0 ${size} ${h}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
+        `<path d="M${cx} 0C${(size * 0.224).toFixed(0)} 0 0 ${(size * 0.224).toFixed(0)} 0 ${(size * 0.5).toFixed(0)}c0 ${(size * 0.375).toFixed(0)} ${cx} ${(size * 0.813).toFixed(0)} ${cx} ${(size * 0.813).toFixed(0)}s${cx}-${(size * 0.438).toFixed(0)} ${cx}-${(size * 0.813).toFixed(0)}C${size} ${(size * 0.224).toFixed(0)} ${(size * 0.776).toFixed(0)} 0 ${cx} 0z" fill="${color}"/>` +
+        `<circle cx="${cx}" cy="${cy}" r="${circleR}" fill="${circleColor}"/>` +
+        `<circle cx="${cx}" cy="${cy}" r="${innerR}" fill="white"/>` +
+        `</svg></div>`
+      );
     };
 
-    updateMarkers();
+    playgrounds.forEach((p) => {
+      const isSelected = p.id === selectedId;
+      const conditionInfo = CONDITION_MAP[p.condition] || CONDITION_MAP.good;
+      const ratingInfo = getRatingLabel(p.rating);
+
+      const placemark = new ymaps.Placemark(
+        [p.lat, p.lng],
+        {
+          hintContent: p.name,
+          balloonContentHeader: p.name,
+          balloonContentBody:
+            `<div style="font-family:Inter,sans-serif;">` +
+            `<p style="font-size:13px;color:#73796b;margin:4px 0 8px;">${p.address}, ${p.city}</p>` +
+            `<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">` +
+            `<span style="display:inline-block;padding:3px 10px;border-radius:9999px;font-size:11px;font-weight:600;` +
+            `background:${p.condition === "excellent" ? "#ecfdf5" : p.condition === "dangerous" ? "#fef2f2" : p.condition === "needs_repair" ? "#fffbeb" : "#f0f7ea"};` +
+            `color:${p.condition === "excellent" ? "#047857" : p.condition === "dangerous" ? "#b91c1c" : p.condition === "needs_repair" ? "#b45309" : "#3d6922"};` +
+            `border:1px solid ${p.condition === "excellent" ? "#a7f3d0" : p.condition === "dangerous" ? "#fecaca" : p.condition === "needs_repair" ? "#fde68a" : "#c2c9b8"};">${conditionInfo.label}</span>` +
+            `<span style="font-size:13px;font-weight:700;color:${ratingInfo.color === "text-emerald-600" ? "#059669" : ratingInfo.color === "text-primary" ? "#3d6922" : ratingInfo.color === "text-amber-600" ? "#d97706" : "#dc2626"};">${(p.rating / 20).toFixed(1)} ★ ${ratingInfo.label}</span>` +
+            `</div></div>`,
+        },
+        {
+          iconLayout: createMarkerLayout(isSelected),
+          iconShape: { type: "Rectangle", coordinates: [[0, 0], [isSelected ? 40 : 32, isSelected ? 52 : 42]] },
+        }
+      );
+
+      if (onSelect) {
+        placemark.events.add("click", () => onSelect(p.id));
+      }
+
+      map.geoObjects.add(placemark);
+    });
   }, [playgrounds, selectedId, loaded, onSelect]);
 
   return (
@@ -537,7 +552,7 @@ function MapComponent({
   );
 }
 
-// ==================== MAP PICKER COMPONENT (for Add form) ====================
+// ==================== MAP PICKER COMPONENT (Yandex Maps 2.1, for Add form) ====================
 function MapPicker({
   lat,
   lng,
@@ -554,73 +569,96 @@ function MapPicker({
   autoDetectedDistrict?: string;
 }) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
+  // Load Yandex Maps script (shared with MapComponent — won't double-load)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || typeof window === "undefined") return;
 
-    const initMap = async () => {
-      const L = await import("leaflet");
-      if (!mapRef.current || mapInstanceRef.current) return;
-
-      const map = L.map(mapRef.current, {
-        center: [lat, lng],
-        zoom: 13,
-      });
-
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
-
-      const pistachioIcon = L.divIcon({
-        html: `<svg width="36" height="48" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18 0C8.058 0 0 8.058 0 18c0 13.5 18 30 18 30s18-16.5 18-30C36 8.058 27.942 0 18 0z" fill="#3d6922"/>
-          <circle cx="18" cy="18" r="9" fill="#93c572"/>
-          <circle cx="18" cy="18" r="4" fill="white"/>
-        </svg>`,
-        className: "custom-marker",
-        iconSize: [36, 48],
-        iconAnchor: [18, 48],
-      });
-
-      const marker = L.marker([lat, lng], { icon: pistachioIcon, draggable: true }).addTo(map);
-      markerRef.current = marker;
-      mapInstanceRef.current = map;
-
-      marker.on("dragend", () => {
-        const pos = marker.getLatLng();
-        onChange(pos.lat, pos.lng);
-        const nearest = findNearestSettlement(pos.lat, pos.lng);
-        if (nearest && onLocationSelect) {
-          onLocationSelect(pos.lat, pos.lng, nearest.district.name, nearest.settlement.name);
+    const existingScript = document.querySelector('script[src*="api-maps.yandex.ru"]');
+    if (existingScript) {
+      const checkReady = () => {
+        if ((window as any).ymaps) {
+          (window as any).ymaps.ready().then(() => setLoaded(true));
+        } else {
+          setTimeout(checkReady, 100);
         }
-      });
+      };
+      checkReady();
+      return;
+    }
 
-      map.on("click", (e: L.LeafletMouseEvent) => {
-        marker.setLatLng(e.latlng);
-        onChange(e.latlng.lat, e.latlng.lng);
-        const nearest = findNearestSettlement(e.latlng.lat, e.latlng.lng);
-        if (nearest && onLocationSelect) {
-          onLocationSelect(e.latlng.lat, e.latlng.lng, nearest.district.name, nearest.settlement.name);
-        }
-      });
-
-      // Force invalidate size after mount
-      setTimeout(() => map.invalidateSize(), 100);
+    const script = document.createElement("script");
+    script.src = "https://api-maps.yandex.ru/2.1/?lang=ru_RU";
+    script.async = true;
+    script.onload = () => {
+      (window as any).ymaps.ready().then(() => setLoaded(true));
     };
+    document.head.appendChild(script);
+  }, [isOpen]);
 
-    initMap();
+  // Initialize map and draggable marker
+  useEffect(() => {
+    if (!isOpen || !loaded || !mapRef.current || mapInstanceRef.current) return;
+
+    const ymaps = (window as any).ymaps;
+    const map = new ymaps.Map(mapRef.current, {
+      center: [lat, lng],
+      zoom: 13,
+      controls: ["zoomControl"],
+    });
+
+    const markerLayout = ymaps.templateLayoutFactory.createClass(
+      `<div style="filter:drop-shadow(0 2px 6px rgba(147,197,114,0.5))">` +
+      `<svg width="36" height="48" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg">` +
+      `<path d="M18 0C8.058 0 0 8.058 0 18c0 13.5 18 30 18 30s18-16.5 18-30C36 8.058 27.942 0 18 0z" fill="#3d6922"/>` +
+      `<circle cx="18" cy="18" r="9" fill="#93c572"/>` +
+      `<circle cx="18" cy="18" r="4" fill="white"/>` +
+      `</svg></div>`
+    );
+
+    const placemark = new ymaps.Placemark([lat, lng], {}, {
+      iconLayout: markerLayout,
+      iconShape: { type: "Rectangle", coordinates: [[0, 0], [36, 48]] },
+      draggable: true,
+    });
+
+    map.geoObjects.add(placemark);
+    markerRef.current = placemark;
+    mapInstanceRef.current = map;
+
+    // Handle drag end
+    placemark.events.add("dragend", () => {
+      const coords = placemark.geometry.getCoordinates();
+      onChange(coords[0], coords[1]);
+      const nearest = findNearestSettlement(coords[0], coords[1]);
+      if (nearest && onLocationSelect) {
+        onLocationSelect(coords[0], coords[1], nearest.district.name, nearest.settlement.name);
+      }
+    });
+
+    // Handle map click
+    map.events.add("click", (e: any) => {
+      const coords = e.get("coords");
+      placemark.geometry.setCoordinates(coords);
+      onChange(coords[0], coords[1]);
+      const nearest = findNearestSettlement(coords[0], coords[1]);
+      if (nearest && onLocationSelect) {
+        onLocationSelect(coords[0], coords[1], nearest.district.name, nearest.settlement.name);
+      }
+    });
 
     return () => {
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        mapInstanceRef.current.destroy();
         mapInstanceRef.current = null;
         markerRef.current = null;
       }
     };
-  }, [isOpen]);
+  }, [isOpen, loaded]);
 
   return (
     <div>
@@ -1239,7 +1277,8 @@ export default function HomePage() {
 
   // Nav items
   const navItems = [
-    { id: "home" as ViewTab, label: "Карта", icon: <Map className="w-4 h-4" /> },
+    { id: "home" as ViewTab, label: "Главная", icon: <Sun className="w-4 h-4" /> },
+    { id: "map" as ViewTab, label: "Карта", icon: <Map className="w-4 h-4" /> },
     { id: "registry" as ViewTab, label: "Реестр", icon: <List className="w-4 h-4" /> },
     { id: "add" as ViewTab, label: "Добавить", icon: <Plus className="w-4 h-4" /> },
     { id: "admin" as ViewTab, label: "Админ", icon: <Shield className="w-4 h-4" /> },
@@ -1247,7 +1286,8 @@ export default function HomePage() {
 
   // Bottom nav items for mobile (different icon sizes)
   const bottomNavItems = [
-    { id: "home" as ViewTab, label: "Карта", Icon: Map },
+    { id: "home" as ViewTab, label: "Главная", Icon: Sun },
+    { id: "map" as ViewTab, label: "Карта", Icon: Map },
     { id: "registry" as ViewTab, label: "Реестр", Icon: List },
     { id: "add" as ViewTab, label: "Добавить", Icon: Plus },
     { id: "admin" as ViewTab, label: "Ещё", Icon: Shield },
@@ -1378,8 +1418,8 @@ export default function HomePage() {
                         Находите лучшие детские и спортивные площадки Приднестровья. Интерактивная карта, рейтинги и актуальная информация.
                       </p>
                       <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
-                        <Button size="lg" className="rounded-full px-6 sm:px-8 text-sm sm:text-base shadow-lg shadow-primary/20 w-full sm:w-auto" onClick={() => setActiveTab("registry")}>
-                          <Navigation className="w-4 h-4 mr-2" />Начать поиск
+                        <Button size="lg" className="rounded-full px-6 sm:px-8 text-sm sm:text-base shadow-lg shadow-primary/20 w-full sm:w-auto" onClick={() => setActiveTab("map")}>
+                          <Navigation className="w-4 h-4 mr-2" />Открыть карту
                         </Button>
                         <Button variant="outline" size="lg" className="rounded-full px-6 sm:px-8 text-sm sm:text-base w-full sm:w-auto" onClick={() => setActiveTab("add")}>
                           <Plus className="w-4 h-4 mr-2" />Добавить площадку
@@ -1432,104 +1472,6 @@ export default function HomePage() {
                 <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-pistachio/10 blur-3xl pointer-events-none" />
               </section>
 
-              {/* Map Section */}
-              <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
-                  <div>
-                    <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Интерактивная карта</h2>
-                    <p className="text-sm sm:text-base text-muted-foreground mt-1">Нажмите на маркер, чтобы узнать подробности</p>
-                  </div>
-                  <Button variant="outline" size="sm" className="rounded-full sm:hidden" onClick={() => setShowFilters(!showFilters)}>
-                    <Filter className="w-4 h-4 mr-1.5" />Фильтры
-                    <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showFilters ? "rotate-180" : ""}`} />
-                  </Button>
-                  <Button variant="outline" className="rounded-full hidden sm:inline-flex" onClick={() => setShowFilters(!showFilters)}>
-                    <Filter className="w-4 h-4 mr-2" />Фильтры
-                    <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showFilters ? "rotate-180" : ""}`} />
-                  </Button>
-                </div>
-
-                <AnimatePresence>
-                  {showFilters && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-6 overflow-hidden">
-                      <div className="bg-white rounded-3xl p-6 border border-border/30 shadow-sm flex flex-wrap gap-4">
-                        <div className="flex-1 min-w-[200px]">
-                          <Label className="text-xs text-muted-foreground mb-1.5">Поиск</Label>
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <Input placeholder="Город, улица, название..." className="pl-10 rounded-xl" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                          </div>
-                        </div>
-                        <div className="min-w-[160px]">
-                          <Label className="text-xs text-muted-foreground mb-1.5">Район</Label>
-                          <select className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterDistrict} onChange={(e) => { setFilterDistrict(e.target.value); setFilterCity("all"); }}>
-                            <option value="all">Все районы</option>
-                            {DISTRICTS.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
-                          </select>
-                        </div>
-                        <div className="min-w-[160px]">
-                          <Label className="text-xs text-muted-foreground mb-1.5">Населённый пункт</Label>
-                          <select className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterCity} onChange={(e) => setFilterCity(e.target.value)}>
-                            <option value="all">Все населённые пункты</option>
-                            {(filterDistrict === "all" ? getAllSettlements() : DISTRICTS.find(d => d.name === filterDistrict)?.settlements || [])
-                              .filter((s, i, arr) => arr.findIndex(x => x.name === s.name) === i)
-                              .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-                              .map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
-                          </select>
-                        </div>
-                        <div className="min-w-[140px]">
-                          <Label className="text-xs text-muted-foreground mb-1.5">Тип</Label>
-                          <select className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
-                            <option value="all">Все типы</option><option value="kids">Детские</option><option value="sports">Спортивные</option><option value="both">Комбинированные</option>
-                          </select>
-                        </div>
-                        <div className="min-w-[160px]">
-                          <Label className="text-xs text-muted-foreground mb-1.5">Состояние</Label>
-                          <select className="w-full h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterCondition} onChange={(e) => setFilterCondition(e.target.value)}>
-                            <option value="all">Любое</option><option value="excellent">Идеально</option><option value="good">Хорошее</option><option value="needs_repair">Требует ремонта</option><option value="dangerous">Опасно</option>
-                          </select>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                <div className="rounded-2xl sm:rounded-3xl overflow-hidden border border-border/30 shadow-lg">
-                  <MapComponent playgrounds={filteredPlaygrounds} selectedId={selectedPlayground} onSelect={(id) => { setSelectedPlayground(id); const p = playgrounds.find((pg) => pg.id === id); if (p) { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); } }} />
-                </div>
-
-                {/* Quick cards */}
-                <div className="mt-6 sm:mt-8">
-                  <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-3 sm:mb-4">Рядом с вами</h3>
-                  <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x sm:mx-0 sm:px-0 sm:pb-0 sm:overflow-visible">
-                    {playgrounds.length > 0 ? playgrounds.slice(0, 6).map((p, i) => (
-                      <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                        className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 shadow-sm hover:shadow-md transition-all cursor-pointer group min-w-[260px] sm:min-w-0 snap-start" onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); }}>
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${p.type === "kids" ? "bg-pink-50 text-pink-600" : p.type === "sports" ? "bg-blue-50 text-blue-600" : "bg-primary/10 text-primary"}`}>
-                              {p.type === "kids" ? <Baby className="w-5 h-5" /> : p.type === "sports" ? <Dumbbell className="w-5 h-5" /> : <TreePine className="w-5 h-5" />}
-                            </div>
-                            <div>
-                              <h4 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">{p.name}</h4>
-                              <p className="text-xs text-muted-foreground">{p.city}</p>
-                            </div>
-                          </div>
-                          <ConditionBadge condition={p.condition} />
-                        </div>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2"><MapPin className="w-3 h-3 shrink-0" /><span className="line-clamp-1">{p.address}</span></p>
-                        <RatingBar rating={p.rating} size="sm" />
-                      </motion.div>
-                    )) : (
-                      <div className="text-center py-8 w-full">
-                        <MapPin className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">Загрузка площадок...</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
-
               {/* Mission */}
               <section className="bg-pistachio-bg/50 border-y border-border/20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-20">
@@ -1580,6 +1522,95 @@ export default function HomePage() {
                   <div className="absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-white/5 blur-3xl pointer-events-none" />
                 </div>
               </section>
+            </motion.div>
+          )}
+
+          {/* ==================== MAP TAB ==================== */}
+          {activeTab === "map" && (
+            <motion.div key="map" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+              {/* Header */}
+              <div className="mb-6 sm:mb-8">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Интерактивная карта</h2>
+                <p className="text-sm sm:text-base text-muted-foreground mt-1">Нажмите на маркер, чтобы узнать подробности</p>
+              </div>
+
+              {/* Filters toggle + panel */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-6">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="rounded-full">{filteredPlaygrounds.length} объектов</Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="rounded-full" onClick={() => setShowFilters(!showFilters)}>
+                    <Filter className="w-3.5 h-3.5 mr-1.5" />Фильтры
+                    <ChevronDown className={`w-3.5 h-3.5 ml-1 transition-transform ${showFilters ? "rotate-180" : ""}`} />
+                  </Button>
+                </div>
+              </div>
+
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="mb-6 overflow-hidden">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 shadow-sm flex flex-wrap gap-3">
+                      <div className="flex-1 min-w-[180px]">
+                        <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Поиск..." className="pl-9 rounded-xl" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+                      </div>
+                      <select className="h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterDistrict} onChange={(e) => { setFilterDistrict(e.target.value); setFilterCity("all"); }}>
+                        <option value="all">Все районы</option>
+                        {DISTRICTS.map((d) => <option key={d.name} value={d.name}>{d.name}</option>)}
+                      </select>
+                      <select className="h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterCity} onChange={(e) => setFilterCity(e.target.value)}>
+                        <option value="all">Все населённые пункты</option>
+                        {(filterDistrict === "all" ? getAllSettlements() : DISTRICTS.find(d => d.name === filterDistrict)?.settlements || [])
+                          .filter((s, i, arr) => arr.findIndex(x => x.name === s.name) === i)
+                          .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+                          .map((s) => <option key={s.name} value={s.name}>{s.name}</option>)}
+                      </select>
+                      <select className="h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                        <option value="all">Все типы</option><option value="kids">Детские</option><option value="sports">Спортивные</option><option value="both">Комбинированные</option>
+                      </select>
+                      <select className="h-10 px-3 rounded-xl border border-input bg-background text-sm" value={filterCondition} onChange={(e) => setFilterCondition(e.target.value)}>
+                        <option value="all">Любое</option><option value="excellent">Идеально</option><option value="good">Хорошее</option><option value="needs_repair">Требует ремонта</option><option value="dangerous">Опасно</option>
+                      </select>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Map */}
+              <div className="rounded-2xl sm:rounded-3xl overflow-hidden border border-border/30 shadow-lg">
+                <MapComponent playgrounds={filteredPlaygrounds} selectedId={selectedPlayground} onSelect={(id) => { setSelectedPlayground(id); const p = playgrounds.find((pg) => pg.id === id); if (p) { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); } }} />
+              </div>
+
+              {/* Nearby cards */}
+              <div className="mt-6 sm:mt-8">
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-3 sm:mb-4">Площадки на карте</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  {playgrounds.length > 0 ? playgrounds.map((p, i) => (
+                    <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                      className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); }}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${p.type === "kids" ? "bg-pink-50 text-pink-600" : p.type === "sports" ? "bg-blue-50 text-blue-600" : "bg-primary/10 text-primary"}`}>
+                            {p.type === "kids" ? <Baby className="w-5 h-5" /> : p.type === "sports" ? <Dumbbell className="w-5 h-5" /> : <TreePine className="w-5 h-5" />}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors line-clamp-1">{p.name}</h4>
+                            <p className="text-xs text-muted-foreground">{p.city}</p>
+                          </div>
+                        </div>
+                        <ConditionBadge condition={p.condition} />
+                      </div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2"><MapPin className="w-3 h-3 shrink-0" /><span className="line-clamp-1">{p.address}</span></p>
+                      <RatingBar rating={p.rating} size="sm" />
+                    </motion.div>
+                  )) : (
+                    <div className="text-center py-8 col-span-full">
+                      <MapPin className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Загрузка площадок...</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -2034,7 +2065,8 @@ export default function HomePage() {
             </div>
             <p className="text-sm text-muted-foreground text-center">© 2024 ПЛОЩАДКА. Мониторинг детских и спортивных площадок Приднестровья.</p>
             <div className="flex gap-6">
-              <button onClick={() => setActiveTab("home")} className="text-sm text-muted-foreground hover:text-primary transition-colors">Карта</button>
+              <button onClick={() => setActiveTab("home")} className="text-sm text-muted-foreground hover:text-primary transition-colors">Главная</button>
+              <button onClick={() => setActiveTab("map")} className="text-sm text-muted-foreground hover:text-primary transition-colors">Карта</button>
               <button onClick={() => setActiveTab("registry")} className="text-sm text-muted-foreground hover:text-primary transition-colors">Реестр</button>
               <button onClick={() => setActiveTab("add")} className="text-sm text-muted-foreground hover:text-primary transition-colors">Добавить</button>
             </div>
