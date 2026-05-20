@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "Интерактивная карта и реестр детских и спортивных площадок в Приднестровье. Найдите идеальное место для активного отдыха.",
   keywords: ["ПЛОЩАДКА", "Приднестровье", "детские площадки", "спортивные площадки", "Тирасполь", "Бендеры"],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/images/favicon.png",
   },
 };
 

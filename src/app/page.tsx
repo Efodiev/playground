@@ -1012,12 +1012,19 @@ export default function HomePage() {
     const init = async () => {
       setLoading(true);
       await seedDatabase();
+      await fetchApproved();
       setLoading(false);
     };
     init();
   }, []);
 
+  // Re-fetch approved playgrounds when filters change (not on initial mount)
+  const isInitialMount = useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     fetchApproved();
   }, [fetchApproved]);
 
@@ -1381,26 +1388,43 @@ export default function HomePage() {
                     </motion.div>
 
                     <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2, duration: 0.5 }} className="flex lg:grid lg:grid-cols-2 gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x lg:mx-0 lg:px-0 lg:pb-0 lg:overflow-visible">
-                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-2 sm:mb-4"><MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /></div>
-                        <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats?.approved || 0}+</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Площадок</p>
-                      </div>
-                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 flex items-center justify-center mb-2 sm:mb-4"><Users className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" /></div>
-                        <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats?.kids || 0}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Детских зон</p>
-                      </div>
-                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 flex items-center justify-center mb-2 sm:mb-4"><Dumbbell className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" /></div>
-                        <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats?.sports || 0}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Спортивных</p>
-                      </div>
-                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 flex items-center justify-center mb-2 sm:mb-4"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" /></div>
-                        <p className="text-2xl sm:text-3xl font-bold text-foreground">{getAllSettlements().length}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Нас. пунктов</p>
-                      </div>
+                      {isAdmin ? (
+                        <>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-2 sm:mb-4"><MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /></div>
+                            <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats?.approved || 0}+</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Площадок</p>
+                          </div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-amber-50 flex items-center justify-center mb-2 sm:mb-4"><Users className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" /></div>
+                            <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats?.kids || 0}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Детских зон</p>
+                          </div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-blue-50 flex items-center justify-center mb-2 sm:mb-4"><Dumbbell className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" /></div>
+                            <p className="text-2xl sm:text-3xl font-bold text-foreground">{stats?.sports || 0}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Спортивных</p>
+                          </div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 flex items-center justify-center mb-2 sm:mb-4"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" /></div>
+                            <p className="text-2xl sm:text-3xl font-bold text-foreground">{getAllSettlements().length}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Нас. пунктов</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-2 sm:mb-4"><MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-primary" /></div>
+                            <p className="text-2xl sm:text-3xl font-bold text-foreground">3+</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Площадок</p>
+                          </div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 min-w-[140px] lg:min-w-0 snap-start hover:shadow-md transition-shadow">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-emerald-50 flex items-center justify-center mb-2 sm:mb-4"><CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" /></div>
+                            <p className="text-2xl sm:text-3xl font-bold text-foreground">154</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">Нас. пунктов</p>
+                          </div>
+                        </>
+                      )}
                     </motion.div>
                   </div>
                 </div>
@@ -1478,7 +1502,7 @@ export default function HomePage() {
                 <div className="mt-6 sm:mt-8">
                   <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-3 sm:mb-4">Рядом с вами</h3>
                   <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 overflow-x-auto pb-2 -mx-4 px-4 snap-x sm:mx-0 sm:px-0 sm:pb-0 sm:overflow-visible">
-                    {filteredPlaygrounds.slice(0, 6).map((p, i) => (
+                    {playgrounds.length > 0 ? playgrounds.slice(0, 6).map((p, i) => (
                       <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                         className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-border/30 shadow-sm hover:shadow-md transition-all cursor-pointer group min-w-[260px] sm:min-w-0 snap-start" onClick={() => { setPreviousTab(activeTab); setDetailPlayground(p); setActiveTab("detail"); window.history.pushState({}, '', `/?id=${p.id}`); }}>
                         <div className="flex items-start justify-between mb-3">
@@ -1496,7 +1520,12 @@ export default function HomePage() {
                         <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2"><MapPin className="w-3 h-3 shrink-0" /><span className="line-clamp-1">{p.address}</span></p>
                         <RatingBar rating={p.rating} size="sm" />
                       </motion.div>
-                    ))}
+                    )) : (
+                      <div className="text-center py-8 w-full">
+                        <MapPin className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">Загрузка площадок...</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
@@ -1519,10 +1548,21 @@ export default function HomePage() {
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center"><TreePine className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">{stats?.approved || 0}</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Площадок</p></div>
-                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center sm:mt-8"><MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">{getAllSettlements().length}</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Нас. пунктов</p></div>
-                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center"><Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">1.2k</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Пользователей</p></div>
-                      <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center sm:mt-8"><Sun className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">100%</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Бесплатно</p></div>
+                      {isAdmin ? (
+                        <>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center"><TreePine className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">{stats?.approved || 0}</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Площадок</p></div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center sm:mt-8"><MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">{getAllSettlements().length}</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Нас. пунктов</p></div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center"><Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">{stats?.kids || 0}</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Детских зон</p></div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center sm:mt-8"><Dumbbell className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">{stats?.sports || 0}</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Спортивных</p></div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center"><TreePine className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">3+</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Площадок</p></div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center sm:mt-8"><MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">154</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Нас. пунктов</p></div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center"><Users className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">1.2k</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Пользователей</p></div>
+                          <div className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-border/30 text-center sm:mt-8"><Sun className="w-6 h-6 sm:w-8 sm:h-8 text-primary mx-auto mb-2 sm:mb-3" /><p className="text-xl sm:text-2xl font-bold text-foreground">100%</p><p className="text-xs text-muted-foreground mt-0.5 sm:mt-1">Бесплатно</p></div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1926,9 +1966,9 @@ export default function HomePage() {
                                 {p.submitterName && <p className="text-xs text-muted-foreground flex items-center gap-1"><Mail className="w-3 h-3" />От: {p.submitterName} {p.submitterEmail && `(${p.submitterEmail})`}</p>}
                               </div>
                               <div className="flex sm:flex-col gap-2 shrink-0">
-                                <Button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-none" onClick={() => handleApprove(p.id)}><Check className="w-4 h-4 mr-1.5" />Одобрить</Button>
-                                <Button variant="outline" className="rounded-xl flex-1 sm:flex-none border-primary/30 text-primary hover:bg-primary/5" onClick={() => handleEditPlayground(p)}><Edit3 className="w-4 h-4 mr-1.5" />Редактировать</Button>
-                                <Button variant="destructive" className="rounded-xl flex-1 sm:flex-none" onClick={() => handleReject(p.id)}><Trash2 className="w-4 h-4 mr-1.5" />Отклонить</Button>
+                                <Button className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-none" onClick={() => handleApprove(p.id)}><Check className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Одобрить</span></Button>
+                                <Button variant="outline" className="rounded-xl flex-1 sm:flex-none border-primary/30 text-primary hover:bg-primary/5" onClick={() => handleEditPlayground(p)}><Edit3 className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Редактировать</span></Button>
+                                <Button variant="destructive" className="rounded-xl flex-1 sm:flex-none" onClick={() => handleReject(p.id)}><Trash2 className="w-4 h-4 sm:mr-1.5" /><span className="hidden sm:inline">Отклонить</span></Button>
                               </div>
                             </div>
                           </motion.div>
@@ -1941,8 +1981,8 @@ export default function HomePage() {
                   <div className="mt-8 sm:mt-12">
                     <div className="flex items-center gap-2 mb-3 sm:mb-4"><List className="w-5 h-5 text-primary" /><h3 className="font-semibold text-sm sm:text-base text-foreground">Все одобренные площадки ({playgrounds.length})</h3></div>
                     <div className="bg-white rounded-2xl sm:rounded-3xl border border-border/30 overflow-hidden">
-                      <div className="max-h-96 overflow-y-auto">
-                        <table className="w-full">
+                      <div className="max-h-96 overflow-y-auto overflow-x-auto">
+                        <table className="w-full min-w-[500px]">
                           <thead className="bg-muted/50 sticky top-0">
                             <tr>
                               <th className="text-left p-4 text-xs font-semibold text-muted-foreground uppercase">Название</th>
