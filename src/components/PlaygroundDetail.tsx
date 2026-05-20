@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import type L from "leaflet";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   MapPin,
@@ -32,7 +32,6 @@ import {
   Waves,
   Wind,
   Palette,
-  Music,
   Gamepad2,
   Accessibility,
   Lock,
@@ -40,13 +39,9 @@ import {
   Siren,
   Flag,
   Tent,
-  ShowerHead,
   Trash2,
   Coffee,
   Armchair,
-  Lamp,
-  Fence,
-  Grass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -287,53 +282,9 @@ function StarRating({ rating, size = "md" }: { rating: number; size?: "sm" | "md
   );
 }
 
-// ==================== REVIEW TYPES ====================
-interface Review {
-  id: string;
-  playgroundId: string;
-  authorName: string;
-  rating: number;
-  text: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-const AVATAR_COLORS = [
-  "bg-pink-100 text-pink-700",
-  "bg-blue-100 text-blue-700",
-  "bg-emerald-100 text-emerald-700",
-  "bg-violet-100 text-violet-700",
-  "bg-amber-100 text-amber-700",
-  "bg-sky-100 text-sky-700",
-  "bg-rose-100 text-rose-700",
-  "bg-teal-100 text-teal-700",
-];
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return name.substring(0, 2).toUpperCase();
-}
-
-function getAvatarColor(name: string): string {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-
 // ==================== MAIN COMPONENT ====================
 export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }: PlaygroundDetailProps) {
   const [liked, setLiked] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(true);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewAuthor, setReviewAuthor] = useState("");
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewText, setReviewText] = useState("");
-  const [reviewSubmitting, setReviewSubmitting] = useState(false);
-  const [hoverStar, setHoverStar] = useState(0);
   const photos = useMemo(() => getPhotos(playground), [playground]);
   const equipment = useMemo(() => getEquipment(playground), [playground]);
   const ratingInfo = useMemo(() => getRatingLabel(playground.rating), [playground.rating]);
@@ -357,75 +308,6 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
       )}`,
     ];
   }, [photos]);
-
-  // Fetch reviews
-  useEffect(() => {
-    const fetchReviews = async () => {
-      setReviewsLoading(true);
-      try {
-        const res = await fetch(`/api/reviews?playgroundId=${playground.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          setReviews(data);
-        }
-      } catch (err) {
-        console.error("Error fetching reviews:", err);
-      } finally {
-        setReviewsLoading(false);
-      }
-    };
-    fetchReviews();
-  }, [playground.id]);
-
-  // Submit review
-  const handleSubmitReview = async () => {
-    if (!reviewAuthor.trim() || !reviewText.trim() || reviewRating < 1) return;
-    setReviewSubmitting(true);
-    try {
-      const res = await fetch("/api/reviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playgroundId: playground.id,
-          authorName: reviewAuthor.trim(),
-          rating: reviewRating,
-          text: reviewText.trim(),
-        }),
-      });
-      if (res.ok) {
-        const newReview = await res.json();
-        setReviews((prev) => [newReview, ...prev]);
-        setReviewAuthor("");
-        setReviewRating(5);
-        setReviewText("");
-        setShowReviewForm(false);
-      } else {
-        const data = await res.json();
-        console.error("Review error:", data.error);
-      }
-    } catch (err) {
-      console.error("Error submitting review:", err);
-    } finally {
-      setReviewSubmitting(false);
-    }
-  };
-
-  // Delete review
-  const handleDeleteReview = async (reviewId: string) => {
-    try {
-      const res = await fetch(`/api/reviews/${reviewId}`, { method: "DELETE" });
-      if (res.ok) {
-        setReviews((prev) => prev.filter((r) => r.id !== reviewId));
-      }
-    } catch (err) {
-      console.error("Error deleting review:", err);
-    }
-  };
-
-  // Average review rating
-  const avgReviewRating = reviews.length > 0
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
-    : 0;
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -935,200 +817,6 @@ export default function PlaygroundDetail({ playground, onBack, isAdmin, onEdit }
           </div>
         </motion.section>
 
-        {/* ==================== 4. REVIEWS SECTION ==================== */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.45 }}
-          className="mt-8 sm:mt-12"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Отзывы</h2>
-              <Badge variant="secondary" className="rounded-full">
-                {reviews.length} {reviews.length === 1 ? "отзыв" : reviews.length < 5 ? "отзыва" : "отзывов"}
-              </Badge>
-              {reviews.length > 0 && (
-                <span className="text-sm text-muted-foreground hidden sm:inline-flex items-center gap-1">
-                  Средняя оценка: <span className="font-semibold text-amber-500">{avgReviewRating.toFixed(1)} ★</span>
-                </span>
-              )}
-            </div>
-            <Button
-              size="sm"
-              className="rounded-full bg-primary text-primary-foreground shadow-md shadow-primary/20 hover:bg-primary/90"
-              onClick={() => setShowReviewForm(!showReviewForm)}
-            >
-              {showReviewForm ? "Отмена" : "Написать отзыв"}
-            </Button>
-          </div>
-
-          {/* Review form */}
-          <AnimatePresence>
-            {showReviewForm && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mb-6 overflow-hidden"
-              >
-                <div className="bg-white rounded-lg p-4 sm:p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20">
-                  {/* Star picker */}
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-foreground mb-2">Ваша оценка</p>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <button
-                          key={star}
-                          type="button"
-                          onClick={() => setReviewRating(star)}
-                          onMouseEnter={() => setHoverStar(star)}
-                          onMouseLeave={() => setHoverStar(0)}
-                          className="transition-transform hover:scale-110 active:scale-95"
-                        >
-                          <Star
-                            className={`w-7 h-7 transition-colors ${
-                              star <= (hoverStar || reviewRating)
-                                ? "fill-amber-400 text-amber-400"
-                                : "fill-muted text-muted-foreground/30"
-                            }`}
-                          />
-                        </button>
-                      ))}
-                      <span className="ml-2 text-sm font-semibold text-foreground">
-                        {reviewRating} из 5
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Name */}
-                  <div className="mb-3">
-                    <input
-                      type="text"
-                      placeholder="Ваше имя"
-                      value={reviewAuthor}
-                      onChange={(e) => setReviewAuthor(e.target.value)}
-                      className="w-full h-10 px-4 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-                    />
-                  </div>
-
-                  {/* Text */}
-                  <div className="mb-4">
-                    <textarea
-                      placeholder="Поделитесь впечатлениями о площадке..."
-                      value={reviewText}
-                      onChange={(e) => setReviewText(e.target.value)}
-                      rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
-                    />
-                  </div>
-
-                  {/* Submit */}
-                  <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      className="rounded-full px-6"
-                      disabled={reviewSubmitting || !reviewAuthor.trim() || !reviewText.trim() || reviewRating < 1}
-                      onClick={handleSubmitReview}
-                    >
-                      {reviewSubmitting ? (
-                        <span className="flex items-center gap-2">
-                          <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                          Отправка...
-                        </span>
-                      ) : (
-                        "Отправить отзыв"
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Reviews list */}
-          {reviewsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-lg p-4 sm:p-6 border border-border/20 animate-pulse">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-muted" />
-                    <div className="flex-1">
-                      <div className="h-4 bg-muted rounded w-24 mb-1" />
-                      <div className="h-3 bg-muted rounded w-16" />
-                    </div>
-                  </div>
-                  <div className="h-3 bg-muted rounded w-24 mb-3" />
-                  <div className="space-y-2">
-                    <div className="h-3 bg-muted rounded" />
-                    <div className="h-3 bg-muted rounded w-4/5" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : reviews.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg border border-border/20">
-              <Star className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
-              <p className="text-base font-semibold text-foreground mb-1">Отзывов пока нет</p>
-              <p className="text-sm text-muted-foreground">Станьте первым, кто оставит отзыв об этой площадке</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {reviews.map((review, i) => (
-                <motion.div
-                  key={review.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: Math.min(i * 0.05, 0.3) }}
-                  className="bg-white rounded-lg p-4 sm:p-6 shadow-[0_30px_50px_rgba(29,29,31,0.04)] border border-border/20 relative group"
-                >
-                  {/* Delete button for admin */}
-                  {isAdmin && (
-                    <button
-                      onClick={() => handleDeleteReview(review.id)}
-                      className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all"
-                      title="Удалить отзыв"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-
-                  {/* Header: avatar + name + date */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${getAvatarColor(review.authorName)}`}
-                    >
-                      {getInitials(review.authorName)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{review.authorName}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(review.createdAt)}</p>
-                    </div>
-                  </div>
-
-                  {/* Stars */}
-                  <div className="flex items-center gap-0.5 mb-3">
-                    {Array.from({ length: 5 }).map((_, si) => (
-                      <Star
-                        key={si}
-                        className={`w-3.5 h-3.5 ${
-                          si < review.rating
-                            ? "fill-amber-400 text-amber-400"
-                            : "fill-muted text-muted-foreground/30"
-                        }`}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Quote text */}
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    &ldquo;{review.text}&rdquo;
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          )}
-        </motion.section>
       </div>
     </motion.div>
   );
