@@ -9,7 +9,8 @@ import {
   Navigation, Star, AlertTriangle, Eye, Trash2, Check,
   BarChart3, Users, Map, List, X,
   Filter, Heart, Sun, Info, Phone, Mail,
-  ImagePlus, GripVertical, Crosshair, Edit3
+  ImagePlus, GripVertical, Crosshair, Edit3,
+  ArrowUpDown, ArrowUp, ArrowDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -380,6 +381,49 @@ const MAP_CENTER: [number, number] = [47.0, 29.5];
 const MAP_ZOOM = 9;
 
 const MAX_PHOTOS = 5;
+
+// ==================== STAR RATING COMPONENT ====================
+function StarRating({ rating, size = "md" }: { rating: number; size?: "sm" | "md" | "lg" }) {
+  const stars = rating / 20; // Convert 0-100 to 0-5
+  const fullStars = Math.floor(stars);
+  const hasHalf = stars - fullStars >= 0.25 && stars - fullStars < 0.75;
+  const displayStars = hasHalf ? fullStars + 0.5 : stars - fullStars >= 0.75 ? fullStars + 1 : fullStars;
+  const info = getRatingLabel(rating);
+  const iconSize = size === "sm" ? "w-3.5 h-3.5" : size === "lg" ? "w-5 h-5" : "w-4 h-4";
+  const textSize = size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm";
+  const labelSize = size === "sm" ? "text-[10px]" : size === "lg" ? "text-xs" : "text-[11px]";
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => {
+          const filled = star <= Math.floor(displayStars);
+          const isHalfStar = !filled && star === Math.ceil(displayStars) && displayStars % 1 !== 0;
+          return (
+            <span key={star} className="relative">
+              <Star
+                className={`${iconSize} ${filled ? "text-amber-400 fill-amber-400" : isHalfStar ? "text-amber-400" : "text-muted-foreground/25"}`}
+                fill={filled ? "currentColor" : "none"}
+                strokeWidth={filled || isHalfStar ? 0 : 1.5}
+              />
+              {isHalfStar && (
+                <span className="absolute inset-0 overflow-hidden" style={{ clipPath: "inset(0 50% 0 0)" }}>
+                  <Star className={`${iconSize} text-amber-400 fill-amber-400`} strokeWidth={0} />
+                </span>
+              )}
+            </span>
+          );
+        })}
+      </div>
+      <span className={`${textSize} font-bold ${info.color}`}>{stars.toFixed(1)}</span>
+      {size !== "sm" && (
+        <span className={`${labelSize} font-medium ${info.color}`}>
+          {info.label}
+        </span>
+      )}
+    </div>
+  );
+}
 
 // ==================== HELPER COMPONENTS ====================
 function ConditionBadge({ condition }: { condition: string }) {
@@ -971,6 +1015,7 @@ export default function HomePage() {
   const [filterType, setFilterType] = useState("all");
   const [filterCondition, setFilterCondition] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "rating">("newest");
   const [adminPassword, setAdminPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -1256,8 +1301,18 @@ export default function HomePage() {
     );
   };
 
-  // Filtered playgrounds for registry
-  const filteredPlaygrounds = useMemo(() => playgrounds, [playgrounds]);
+  // Filtered + sorted playgrounds for registry
+  const filteredPlaygrounds = useMemo(() => {
+    const sorted = [...playgrounds];
+    if (sortBy === "newest") {
+      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (sortBy === "oldest") {
+      sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    } else if (sortBy === "rating") {
+      sorted.sort((a, b) => b.rating - a.rating);
+    }
+    return sorted;
+  }, [playgrounds, sortBy]);
 
   const getEquipment = (p: Playground): string[] => {
     try {
@@ -1601,7 +1656,7 @@ export default function HomePage() {
                         <ConditionBadge condition={p.condition} />
                       </div>
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mb-2"><MapPin className="w-3 h-3 shrink-0" /><span className="line-clamp-1">{p.address}</span></p>
-                      <RatingBar rating={p.rating} size="sm" />
+                      <StarRating rating={p.rating} size="sm" />
                     </motion.div>
                   )) : (
                     <div className="text-center py-8 col-span-full">
@@ -1622,9 +1677,39 @@ export default function HomePage() {
                   <h2 className="text-xl sm:text-3xl font-bold text-foreground">Реестр площадок</h2>
                   <p className="text-sm sm:text-base text-muted-foreground mt-1">{filteredPlaygrounds.length} объектов</p>
                 </div>
-                <Button variant="outline" size="sm" className="rounded-full" onClick={() => setShowFilters(!showFilters)}>
-                  <Filter className="w-3.5 h-3.5 mr-1.5" />Фильтры
-                </Button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {/* Sort buttons */}
+                  <div className="flex items-center gap-1 bg-muted/50 rounded-full p-1">
+                    <button
+                      onClick={() => setSortBy("newest")}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        sortBy === "newest" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Новые
+                    </button>
+                    <button
+                      onClick={() => setSortBy("oldest")}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        sortBy === "oldest" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Старые
+                    </button>
+                    <button
+                      onClick={() => setSortBy("rating")}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
+                        sortBy === "rating" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Star className="w-3 h-3" />
+                      Рейтинг
+                    </button>
+                  </div>
+                  <Button variant="outline" size="sm" className="rounded-full" onClick={() => setShowFilters(!showFilters)}>
+                    <Filter className="w-3.5 h-3.5 mr-1.5" />Фильтры
+                  </Button>
+                </div>
               </div>
 
               <AnimatePresence>
@@ -1692,7 +1777,7 @@ export default function HomePage() {
                         <div className="p-4 sm:p-5">
                           <h3 className="font-semibold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors line-clamp-1 mb-1">{p.name}</h3>
                           <p className="text-xs sm:text-sm text-muted-foreground flex items-center gap-1 mb-2 sm:mb-3"><MapPin className="w-3 h-3 shrink-0" /><span className="line-clamp-1">{p.address}, {p.city}</span></p>
-                          <RatingBar rating={p.rating} size="sm" />
+                          <StarRating rating={p.rating} size="md" />
                           {getEquipment(p).length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-3">
                               {getEquipment(p).slice(0, 3).map((eq, j) => <span key={j} className="px-2.5 py-1 rounded-full bg-muted text-xs text-muted-foreground">{eq}</span>)}
