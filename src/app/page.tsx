@@ -1015,7 +1015,8 @@ export default function HomePage() {
   const [filterType, setFilterType] = useState("all");
   const [filterCondition, setFilterCondition] = useState("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "rating">("newest");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "rating_desc" | "rating_asc">("newest");
+  const [showSort, setShowSort] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -1117,6 +1118,19 @@ export default function HomePage() {
       fetchStats();
     }
   }, [isAdmin, fetchPending, fetchStats]);
+
+  // Click-outside handler for sort dropdown
+  useEffect(() => {
+    if (!showSort) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-sort-dropdown]")) {
+        setShowSort(false);
+      }
+    };
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [showSort]);
 
   // URL-based navigation: check for ?id= param on mount
   useEffect(() => {
@@ -1308,8 +1322,10 @@ export default function HomePage() {
       sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else if (sortBy === "oldest") {
       sorted.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    } else if (sortBy === "rating") {
+    } else if (sortBy === "rating_desc") {
       sorted.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === "rating_asc") {
+      sorted.sort((a, b) => a.rating - b.rating);
     }
     return sorted;
   }, [playgrounds, sortBy]);
@@ -1677,36 +1693,48 @@ export default function HomePage() {
                   <h2 className="text-xl sm:text-3xl font-bold text-foreground">Реестр площадок</h2>
                   <p className="text-sm sm:text-base text-muted-foreground mt-1">{filteredPlaygrounds.length} объектов</p>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {/* Sort buttons */}
-                  <div className="flex items-center gap-1 bg-muted/50 rounded-full p-1">
-                    <button
-                      onClick={() => setSortBy("newest")}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        sortBy === "newest" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      Новые
-                    </button>
-                    <button
-                      onClick={() => setSortBy("oldest")}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        sortBy === "oldest" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      Старые
-                    </button>
-                    <button
-                      onClick={() => setSortBy("rating")}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
-                        sortBy === "rating" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <Star className="w-3 h-3" />
-                      Рейтинг
-                    </button>
+                <div className="flex items-center gap-2">
+                  <div className="relative" data-sort-dropdown>
+                    <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setShowSort(!showSort); setShowFilters(false); }}>
+                      <ArrowUpDown className="w-3.5 h-3.5 mr-1.5" />Сортировка
+                      <ChevronDown className={`w-3.5 h-3.5 ml-1 transition-transform ${showSort ? "rotate-180" : ""}`} />
+                    </Button>
+                    <AnimatePresence>
+                      {showSort && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute right-0 top-full mt-2 z-50 bg-white rounded-2xl border border-border/30 shadow-lg overflow-hidden min-w-[200px]"
+                        >
+                          {[
+                            { value: "newest" as const, label: "Сначала новые", icon: <ArrowDown className="w-3.5 h-3.5" /> },
+                            { value: "oldest" as const, label: "Сначала старые", icon: <ArrowUp className="w-3.5 h-3.5" /> },
+                            { value: "rating_desc" as const, label: "Рейтинг ↓ (высокий)", icon: <Star className="w-3.5 h-3.5" /> },
+                            { value: "rating_asc" as const, label: "Рейтинг ↑ (низкий)", icon: <Star className="w-3.5 h-3.5" /> },
+                          ].map((option) => (
+                            <button
+                              key={option.value}
+                              onClick={() => { setSortBy(option.value); setShowSort(false); }}
+                              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors text-left ${
+                                sortBy === option.value
+                                  ? "bg-primary/10 text-primary font-medium"
+                                  : "text-foreground hover:bg-muted/50"
+                              }`}
+                            >
+                              <span className={sortBy === option.value ? "text-primary" : "text-muted-foreground"}>{option.icon}</span>
+                              {option.label}
+                              {sortBy === option.value && (
+                                <Check className="w-3.5 h-3.5 ml-auto text-primary" />
+                              )}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <Button variant="outline" size="sm" className="rounded-full" onClick={() => setShowFilters(!showFilters)}>
+                  <Button variant="outline" size="sm" className="rounded-full" onClick={() => { setShowFilters(!showFilters); setShowSort(false); }}>
                     <Filter className="w-3.5 h-3.5 mr-1.5" />Фильтры
                   </Button>
                 </div>

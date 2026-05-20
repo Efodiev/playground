@@ -26,4 +26,18 @@ model Playground {
   submitterEmail String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  reviews     Review[]
+}
+
+model Review {
+  id            String   @id @default(cuid())
+  playgroundId  String
+  authorName    String
+  rating        Int      // 1-5 stars
+  text          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  playground    Playground @relation(fields: [playgroundId], references: [id], onDelete: Cascade)
+
+  @@index([playgroundId])
 }
